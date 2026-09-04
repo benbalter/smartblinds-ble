@@ -1,0 +1,11 @@
+smartblinds-ble
+Copyright 2026 Ben Balter and contributors
+
+This product includes software derived from pysmartblinds
+(https://github.com/dnschneid/pysmartblinds), Copyright 2018 The pysmartblinds
+authors, licensed under the Apache License, Version 2.0.
+
+The BLE protocol details were reverse-engineered without any knowledge of the
+internal workings of MySmartBlinds / Tilt products. This project is not
+affiliated with, authorized by, or endorsed by MySmartBlinds or Tilt. Those names
+are used only to describe the hardware this software interoperates with.
