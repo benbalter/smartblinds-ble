@@ -8,6 +8,9 @@ confirm on a real, current shade:
 
 - [ ] Discover a motor (`smartblinds-find-key` / `discover()`).
 - [ ] Brute-force + confirm the key (`keyscan`).
+- [ ] **Confirm the cloud `encodedPasskey` (base64-decoded) == the BLE key** the
+      motor expects at handle `0x001b`. If true, cloud import becomes the primary
+      key-acquisition path (see PROTOCOL.md) and brute-force is just a fallback.
 - [ ] A position write physically moves the motor (`set_tilt`).
 - [ ] All of the above works **through an ESPHome Bluetooth Proxy**, not just a
       local adapter. (Reuse the FireBeetle ESP32-S3-U proxy config.)
@@ -20,6 +23,9 @@ say so before promising anyone a hub replacement.
 
 - [ ] Fix constants/encoding per M0 findings; make `test_protocol.py` reflect reality.
 - [ ] Robust connect/retry via `bleak-retry-connector`.
+- [ ] Cloud-import helper: pull MAC + `encodedPasskey` for all shades via
+      `smartblinds-client` (one login), so users skip brute-forcing. Keep it an
+      optional extra so the core lib stays cloud-free.
 - [ ] Publish to PyPI under a final, non-trademark-implying name.
 
 ## M2 — Home Assistant integration (`ha-smartblinds-ble`)

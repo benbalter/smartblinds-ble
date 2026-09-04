@@ -23,7 +23,23 @@ Every operation must first write the **key** to the motor:
 
 Because only the first byte typically matters, the key can be brute-forced by
 trying `0x00..0xFF` and seeing which value makes a subsequent position write
-"take" (the motor visibly moves).
+"take" (the motor visibly moves). But brute-forcing is a fallback — prefer the
+cloud path below, which yields the *full* key.
+
+## Key acquisition (two paths)
+
+1. **Cloud passkey (preferred, while the cloud lives).** The MySmartBlinds/Tilt
+   cloud stores each motor's real key. The
+   [`ianlevesque`/`docBliny/smartblinds-client`](https://github.com/ianlevesque/smartblinds-client)
+   Python library logs in with the account email/password (auth0) and a GraphQL
+   query returns, per blind: `encodedMacAddress` and **`encodedPasskey`**
+   (base64 → the passkey bytes). One login yields MAC + full key for every shade —
+   no brute-forcing, and it explains the "only first byte matters" note above
+   (that was a brute-force artifact; the full passkey is retrievable).
+   - **TODO(M0): confirm the base64-decoded `encodedPasskey` is exactly the value
+     the motor expects at handle `0x001b`.** Strong hypothesis, unproven.
+2. **Brute-force first byte (offline fallback).** `smartblinds-find-key` /
+   `keyscan()` — works with no account, but only finds a first-byte key and is slow.
 
 ## Setting position (tilt)
 
