@@ -71,7 +71,7 @@ class SmartBlind:
             client: BleakClient = await establish_connection(
                 BleakClient, self._device, self._device.address
             )
-        except Exception as exc:  # noqa: BLE001 - surface a typed error
+        except Exception as exc:  # surface any bleak error as a typed one
             raise ConnectionFailed(f"Could not connect to {self.address}: {exc}") from exc
         try:
             # Every operation must (re)send the key first.

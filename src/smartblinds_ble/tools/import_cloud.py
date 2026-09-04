@@ -34,7 +34,7 @@ def main() -> None:
         blinds = fetch_blinds(username, password)
     except ImportError as exc:
         sys.exit(str(exc))
-    except Exception as exc:  # noqa: BLE001 - surface any auth/network failure
+    except Exception as exc:  # surface any auth/network failure to the user
         sys.exit(f"Cloud import failed: {exc}")
 
     if not blinds:

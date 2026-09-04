@@ -53,7 +53,7 @@ def fetch_blinds(username: str, password: str) -> list[CloudBlind]:
     login.
     """
     try:
-        from smartblinds_client import SmartBlindsClient  # noqa: PLC0415
+        from smartblinds_client import SmartBlindsClient
     except ImportError as exc:  # pragma: no cover - dependency guard
         raise ImportError(
             'The cloud importer needs the optional extra: pip install "smartblinds-ble[cloud]"'

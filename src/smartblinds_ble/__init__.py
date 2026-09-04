@@ -16,12 +16,12 @@ from .exceptions import (
 from .scanner import discover
 
 __all__ = [
-    "SmartBlind",
-    "discover",
-    "SmartBlindsError",
     "ConnectionFailed",
     "InvalidPosition",
     "KeyNotFound",
+    "SmartBlind",
+    "SmartBlindsError",
+    "discover",
 ]
 
 __version__ = "0.0.1"
