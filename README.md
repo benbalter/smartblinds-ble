@@ -36,9 +36,17 @@ after a single login. Once the cloud shuts down, keys are only recoverable the h
 way (brute-force or Bluetooth sniffing). This step needs **no extra hardware**:
 
 ```bash
-pip install "smartblinds-ble[cloud]"
+# Not on PyPI yet — install from GitHub. Use the maintained docBliny fork of the
+# cloud client (PyPI's build is stale and no longer logs in):
+pip install "git+https://github.com/docBliny/smartblinds-client.git" \
+            "git+https://github.com/benbalter/smartblinds-ble.git"
+
 smartblinds-import-cloud            # cloud email/password -> smartblinds-keys.json
 ```
+
+> If pip errors with `externally-managed-environment`, run it in a venv:
+> `python3 -m venv .venv && . .venv/bin/activate` then re-run the install.
+> Once this is published to PyPI, the above collapses to `pip install "smartblinds-ble[cloud]"`.
 
 The output holds `{name, mac, key}` per shade and is your **offline insurance** if
 the cloud disappears. Keep it safe — it contains secrets (gitignored by default).

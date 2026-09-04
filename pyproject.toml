@@ -20,7 +20,10 @@ dependencies = [
 
 [project.optional-dependencies]
 # Cloud passkey import (works only while the vendor cloud is online).
-cloud = ["smartblinds-client>=0.7"]
+# NOTE: PyPI's smartblinds-client is stale (0.6, 2019). The maintained docBliny
+# fork tracks the current cloud login — install it from git (see README). A git
+# URL can't live in a PyPI-published extra, so this pin is a floor only.
+cloud = ["smartblinds-client>=0.6"]
 dev = ["pytest>=8", "pytest-asyncio>=0.23", "ruff>=0.5"]
 
 [project.scripts]
