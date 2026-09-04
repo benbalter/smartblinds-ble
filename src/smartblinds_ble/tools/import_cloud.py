@@ -35,8 +35,8 @@ def main() -> None:
     parser.add_argument("-o", "--output", default="smartblinds-keys.json")
     parser.add_argument("--include-deleted", action="store_true",
                         help="also export shades the account has soft-deleted")
-    parser.add_argument("--token", choices=["id_token", "access_token"], default="id_token",
-                        help="which auth token to send (default: id_token)")
+    parser.add_argument("--token", choices=["id_token", "access_token"], default="access_token",
+                        help="which auth token to send (default: access_token; id_token 401s on the legacy API)")
     parser.add_argument("--debug", action="store_true",
                         help="probe both tokens and print counts instead of exporting")
     args = parser.parse_args()
@@ -63,8 +63,10 @@ def main() -> None:
 
     if not blinds:
         sys.exit(
-            "Login succeeded but no shades were found. Try `--debug` to see what the "
-            "account returns, `--include-deleted`, or `--token access_token`."
+            "Login succeeded but no shades were found on this (legacy MySmartBlinds) "
+            "account. If you set your shades up in the newer Tilt app, they live in a "
+            "different backend and can't be exported here — use `smartblinds-find-key` "
+            "to read the key directly over BLE instead. (`--debug` shows raw counts.)"
         )
 
     with open(args.output, "w", encoding="utf-8") as fh:

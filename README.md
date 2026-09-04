@@ -53,6 +53,11 @@ smartblinds-import-cloud            # cloud email/password -> smartblinds-keys.j
 The output holds `{name, mac, key}` per shade and is your **offline insurance** if
 the cloud disappears. Keep it safe — it contains secrets (gitignored by default).
 
+> **Legacy app only.** This exports from the *legacy MySmartBlinds* cloud. If you
+> set your shades up in the newer **Tilt** app, they live in a separate backend and
+> won't appear here (login works but returns zero blinds). In that case, skip the
+> cloud and read the key directly over BLE with `smartblinds-find-key`.
+
 > The importer logs into **your own account** to retrieve **your own devices'**
 > keys, for interoperability with hardware you own. Use your own credentials, at
 > your own risk.

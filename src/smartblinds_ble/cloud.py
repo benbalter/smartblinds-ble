@@ -103,14 +103,20 @@ def fetch_blinds(
     password: str,
     *,
     include_deleted: bool = False,
-    token: str = "id_token",
+    token: str = "access_token",
 ) -> list[CloudBlind]:
     """Log in to the cloud and return every shade's name, MAC, and BLE key.
 
     Args:
         include_deleted: also return shades the account has soft-deleted.
-        token: which auth token to send — ``"id_token"`` (default, what the
-            original client used) or ``"access_token"``.
+        token: which auth token to send. ``"access_token"`` is correct for the
+            legacy MySmartBlinds API (``id_token`` returns 401); kept configurable
+            in case a different backend needs the ``id_token``.
+
+    Note:
+        This targets the *legacy* MySmartBlinds cloud. Shades set up in the newer
+        **Tilt** app live in a different backend and will not appear here (the
+        account resolves but returns zero blinds).
     """
     import base64
 
