@@ -44,6 +44,11 @@ smartblinds-import-cloud            # cloud email/password -> smartblinds-keys.j
 The output holds `{name, mac, key}` per shade and is your insurance if the cloud
 shuts down. Keep it safe — it contains secrets (gitignored by default).
 
+> The importer logs into **your own account** to retrieve **your own devices'**
+> keys, for interoperability with hardware you own. Use it with your own
+> credentials, at your own risk. This project is unofficial and not affiliated
+> with, authorized by, or endorsed by MySmartBlinds or Tilt.
+
 ## The two things everyone gets stuck on
 
 - **The per-motor key.** Best: pull it from the cloud with `smartblinds-import-cloud`
