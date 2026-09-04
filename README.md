@@ -1,5 +1,7 @@
 # smartblinds-ble — local control for MySmartBlinds / Tilt smart blinds (no hub, no cloud)
 
+[![CI](https://github.com/benbalter/smartblinds-ble/actions/workflows/ci.yml/badge.svg)](https://github.com/benbalter/smartblinds-ble/actions/workflows/ci.yml)
+
 Keep your **MySmartBlinds / Tilt motorized blinds** working **even after the cloud
 shuts down**. `smartblinds-ble` controls the shade motors **locally over Bluetooth
 LE** — **no proprietary hub, no cloud account, no phone app required** — and is
