@@ -14,6 +14,10 @@ env/
 .ruff_cache/
 .mypy_cache/
 
+# Exported BLE keys (secrets) from the cloud importer — never commit
+smartblinds-keys.json
+*-keys.json
+
 # Editors / OS
 .DS_Store
 .vscode/

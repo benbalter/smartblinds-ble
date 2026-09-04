@@ -30,11 +30,25 @@ Two layers (see the roadmap):
 2. **`ha-smartblinds-ble`** (planned) — a HACS-installable Home Assistant
    integration exposing each shade as an optimistic `cover` with tilt.
 
+## ⏳ Rescue your keys now (the vendor is winding down)
+
+The cloud hands back each motor's real BLE key while it's still online. The vendor
+is winding down with no EOL notice, so export your keys **now** as an offline
+backup — this doesn't need any ESP32 hardware:
+
+```bash
+pip install "smartblinds-ble[cloud]"
+smartblinds-import-cloud            # cloud email/password -> smartblinds-keys.json
+```
+
+The output holds `{name, mac, key}` per shade and is your insurance if the cloud
+shuts down. Keep it safe — it contains secrets (gitignored by default).
+
 ## The two things everyone gets stuck on
 
-- **The per-motor key.** Each motor needs a BLE key. Discover it by brute-forcing
-  the first byte (`smartblinds-find-key`) or by sniffing the app once. See
-  [`docs/PROTOCOL.md`](docs/PROTOCOL.md).
+- **The per-motor key.** Best: pull it from the cloud with `smartblinds-import-cloud`
+  (above) while you still can. Offline fallback: brute-force the first byte
+  (`smartblinds-find-key`) or sniff the app once. See [`docs/PROTOCOL.md`](docs/PROTOCOL.md).
 - **No state feedback.** The motors are open-loop (reads return `0xFF`). Position
   is tracked optimistically; changes from the app/wand are invisible.
 

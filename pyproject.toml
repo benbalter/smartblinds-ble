@@ -19,10 +19,13 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# Cloud passkey import (works only while the vendor cloud is online).
+cloud = ["smartblinds-client>=0.7"]
 dev = ["pytest>=8", "pytest-asyncio>=0.23", "ruff>=0.5"]
 
 [project.scripts]
 smartblinds-find-key = "smartblinds_ble.tools.find_key:main"
+smartblinds-import-cloud = "smartblinds_ble.tools.import_cloud:main"
 
 [project.urls]
 Homepage = "https://github.com/benbalter/smartblinds-ble"
