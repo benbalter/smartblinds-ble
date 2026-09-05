@@ -16,6 +16,8 @@ keywords = ["ble", "bluetooth", "blinds", "home-assistant", "mysmartblinds", "ti
 dependencies = [
     "bleak>=0.22",
     "bleak-retry-connector>=3.5",
+    # AES-128-CTR for the Tilt-era encrypted session (smartblinds_ble.tilt).
+    "cryptography>=42",
 ]
 
 [project.optional-dependencies]
@@ -43,3 +45,8 @@ asyncio_mode = "auto"
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+
+[tool.ruff.lint.per-file-ignores]
+# Vendored verbatim from tilt-local-bridge (MIT); keep byte-compatible with
+# upstream rather than refactoring its best-effort BLE cleanup handlers.
+"src/smartblinds_ble/tilt/ble.py" = ["BLE001", "S110"]

@@ -27,3 +27,8 @@ tilt-capture/
 .DS_Store
 .vscode/
 .idea/
+
+# Local Tilt pairing keys for the in-room gate check — never commit.
+keys/
+*.key
+keys.json
