@@ -18,6 +18,11 @@ env/
 smartblinds-keys.json
 *-keys.json
 
+# Captured cloud traffic (redacted, but still contains emails/MACs/room names)
+tilt-capture/
+*.pklg
+*.pcap
+
 # Editors / OS
 .DS_Store
 .vscode/
