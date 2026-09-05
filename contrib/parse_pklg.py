@@ -107,7 +107,8 @@ def main() -> None:
     flags = {a for a in sys.argv[1:] if a.startswith("--")}
     if not args:
         sys.exit("usage: parse_pklg.py capture.pklg [--all]")
-    buf = open(args[0], "rb").read()
+    with open(args[0], "rb") as fh:
+        buf = fh.read()
 
     reasm_tx: dict = {}
     reasm_rx: dict = {}
@@ -142,9 +143,7 @@ def main() -> None:
             line += f" handle=0x{h:04x}"
         elif op in VALUE_ONLY_OPS:
             line += f" len={len(rest):<3} {hx(rest)}"
-        elif op == 0x03 and len(rest) >= 2:  # MTU rsp
-            line += f" mtu={struct.unpack_from('<H', rest, 0)[0]}"
-        elif op == 0x02 and len(rest) >= 2:  # MTU req
+        elif op in (0x02, 0x03) and len(rest) >= 2:  # MTU req/rsp
             line += f" mtu={struct.unpack_from('<H', rest, 0)[0]}"
         else:
             line += f" {hx(rest)}"

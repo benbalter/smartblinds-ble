@@ -25,8 +25,9 @@ import re
 
 from mitmproxy import http
 
+_LOGGER = logging.getLogger("tilt-mitm")
 HOSTS = ("tiltsmarthome.com", "mysmartblinds.com", "mysmartblinds.auth0.com")
-SECRET_FIELD = re.compile(r"(key|token|secret|passwd|password|authorization)", re.I)
+SECRET_FIELD = re.compile(r"(key|token|secret|passwd|password|authorization)", re.IGNORECASE)
 OUTDIR = "tilt-capture"
 
 _counter = {"n": 0}
@@ -73,9 +74,9 @@ def _print_hits(obj: object, path: str = "") -> None:
             kp = f"{path}.{k}" if path else k
             if isinstance(v, (str, int, float, bool)):
                 if SECRET_FIELD.search(k):
-                    logging.warning(f"[tilt]   {kp} = {_mask(v)}")
-                elif re.search(r"(mac|name|id|position|model)", k, re.I):
-                    logging.warning(f"[tilt]   {kp} = {v!r}")
+                    _LOGGER.warning(f"[tilt]   {kp} = {_mask(v)}")
+                elif re.search(r"(mac|name|id|position|model)", k, re.IGNORECASE):
+                    _LOGGER.warning(f"[tilt]   {kp} = {v!r}")
             _print_hits(v, kp)
     elif isinstance(obj, list):
         for i, v in enumerate(obj):
@@ -85,7 +86,7 @@ def _print_hits(obj: object, path: str = "") -> None:
 def _parse(body: str) -> object | None:
     try:
         return json.loads(body)
-    except Exception:
+    except Exception:  # noqa: BLE001 - any parse failure just means "not JSON"
         return None
 
 
@@ -95,7 +96,7 @@ def response(flow: http.HTTPFlow) -> None:
         return
 
     status = flow.response.status_code if flow.response else "?"
-    logging.warning(f"[tilt] {flow.request.method} {status} {flow.request.pretty_url}")
+    _LOGGER.warning(f"[tilt] {flow.request.method} {status} {flow.request.pretty_url}")
 
     resp_body = (flow.response.get_text(strict=False) or "") if flow.response else ""
     resp_json = _parse(resp_body)
@@ -122,6 +123,6 @@ def response(flow: http.HTTPFlow) -> None:
         fn = os.path.join(OUTDIR, f"{_counter['n']:03d}-{flow.request.method}.json")
         with open(fn, "w", encoding="utf-8") as fh:
             json.dump(rec, fh, indent=2)
-        logging.warning(f"[tilt]   saved redacted -> {fn}")
+        _LOGGER.warning(f"[tilt]   saved redacted -> {fn}")
     except Exception as exc:  # noqa: BLE001 - never let capture-write kill the proxy
-        logging.warning(f"[tilt]   (capture write failed: {exc})")
+        _LOGGER.warning(f"[tilt]   (capture write failed: {exc})")
