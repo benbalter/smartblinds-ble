@@ -71,3 +71,39 @@ Reads return `0xFF`; the motor does not report its true position. Consequences:
 - [ ] Whether newer firmware exposes any *readable* state.
 - [ ] Battery level / solar charge characteristic, if any (nice-to-have entity).
 - [ ] Behavior with the ESPHome proxy's 3-active-connection limit under load.
+
+---
+
+# Tilt-era (v2 roller shades) — ENCRYPTED, not crackable from captures alone
+
+Everything above is the **legacy** MySmartBlinds protocol. Current **Tilt** roller
+shades use a completely different, encrypted BLE protocol. Findings from an iOS
+PacketLogger capture parsed with `contrib/parse_pklg.py`:
+
+- **GATT:** client writes to handles `0x0010` and `0x0015`; notifications on
+  `0x0012`. HCI ACL exposes plaintext ATT even though the link is encrypted.
+- **Framing:** a `00 <seq> …` transport with `00 c0 01 <n>` heartbeats and
+  `00 <seq> <hdr> <ciphertext>` data frames (monotonic sequence). A separate
+  `2f <op> <seq> <payload>` auth channel, and an `18/19` channel that returns the
+  device serial in the clear.
+- **Auth handshake:** `→ 2f01<seq>` (start) · `← 2f10<seq> <16B challenge>` ·
+  `→ 2f11<seq> <16B response>` · `← 2f02<seq> 00` (ok). 16-byte blocks ⇒ AES.
+- **Session:** subsequent frames are high-entropy ciphertext with sequence-number
+  nonces ⇒ an AEAD session (CCM/GCM-like).
+
+**Tested** `response == AES-ECB / AES-CMAC(pairingKey, challenge)` for all shade
+keys + bridge, 128- and 256-bit, both key halves, both directions, three challenge
+paddings → **0 matches**. So the session/auth key is **derived** from the
+pairingKey (KDF/handshake/ECDH), not used directly. The cloud `pairingKey` is
+necessary but **not sufficient**.
+
+**Conclusion:** local control of Tilt roller shades requires the key-derivation +
+command format, which live in the app/firmware — not recoverable by sniffing.
+Paths (all major efforts):
+1. Reverse the **`TILT_ROLLER_SHADE` firmware** (downloadable from
+   `firmware.smarterhome.xyz`) in Ghidra to find the KDF + command encoding.
+2. **Frida-hook the Tilt app** crypto (needs an Android emulator or jailbroken iOS).
+
+The legacy library/tools in this repo remain useful for legacy MySmartBlinds
+hardware and for cloud key export; the encrypted Tilt path is out of scope until
+someone completes the firmware/app RE above.
