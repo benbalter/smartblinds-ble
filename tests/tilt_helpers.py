@@ -81,11 +81,16 @@ class FakeShadeClient:
         battery: int = 80,
         versions: tuple[int, ...] = (2, 1),
         proof_key: bytes | None = None,
+        travel_fraction: float = 1.0,
     ) -> None:
         self._key = key
         self._proof_key = proof_key or key  # differ to simulate a wrong pairing key
         self._nonce = nonce
         self._versions = tuple(versions)
+        # How much of the requested move completes before the next status read:
+        # 1.0 teleports (the default, and what most tests want), 0.5 is a shade
+        # still travelling, 0.0 a stuck motor, negative one moving the wrong way.
+        self._travel_fraction = travel_fraction
         self.position = start_position  # percent
         self.battery = battery
         self.is_connected = False
@@ -162,7 +167,9 @@ class FakeShadeClient:
             frame, key=self._key, nonce=self._nonce
         )
         if command is P.ShadeCommand.SET_POSITION:
-            self.position = int.from_bytes(payload[:2], "little") // 10
+            target = int.from_bytes(payload[:2], "little") // 10
+            delta = target - self.position
+            self.position = max(0, min(100, round(self.position + delta * self._travel_fraction)))
             self.set_position_calls += 1
             body = b""
         elif command is P.ShadeCommand.GET_STATUS:

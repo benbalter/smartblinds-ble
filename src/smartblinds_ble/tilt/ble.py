@@ -79,6 +79,14 @@ class PositionVerificationPending(AmbiguousPositionWrite):
         self.status = status
 
 
+def _moved_toward(before: ShadeStatus, after: ShadeStatus, target_percent: int) -> bool:
+    """Whether the shade's position changed in the direction of the target."""
+
+    if target_percent > before.position_percent:
+        return after.position_percent > before.position_percent
+    return after.position_percent < before.position_percent
+
+
 def _global_ble_lock() -> asyncio.Lock:
     loop = asyncio.get_running_loop()
     lock = _BLE_LOCKS.get(loop)
@@ -151,7 +159,19 @@ class TiltShadeClient:
         *,
         settle_seconds: float = 2.0,
     ) -> tuple[ShadeStatus, bool]:
-        """Set one bounded target once, then verify it without resending."""
+        """Set one bounded target once, then verify it without resending.
+
+        Returns ``(status, moved)`` where ``moved`` says whether a write was
+        issued — **not** that the shade has arrived. These motors take tens of
+        seconds to travel, far longer than any sane in-session settle, so the
+        read-back is used to prove the shade *responded to* the command, not to
+        wait out the movement. Compare ``status.position_percent`` against the
+        target if the caller needs to know whether travel finished.
+
+        :class:`PositionVerificationPending` is raised only when the shade
+        answered but did not move toward the target at all — a stuck motor, a
+        rejected command, or a shade that is not the one addressed.
+        """
 
         if not self._allow_position_writes:
             raise TiltBleError("Position writes are not enabled for this shade.")
@@ -175,18 +195,26 @@ class TiltShadeClient:
                     ) from readback_error
                 if after_timeout.position_percent == position_percent:
                     return after_timeout, True
-                raise PositionVerificationPending(
-                    "Position write timed out and the responding shade has not reached the target.",
-                    after_timeout,
-                )
+                if not _moved_toward(before, after_timeout, position_percent):
+                    raise PositionVerificationPending(
+                        "Position write timed out and the responding shade did not move "
+                        "toward the target.",
+                        after_timeout,
+                    )
+                return after_timeout, True
             if settle_seconds > 0:
                 await asyncio.sleep(settle_seconds)
             after = await session.read_status()
-            if after.position_percent != position_percent:
+            if after.position_percent == position_percent:
+                return after, True
+            if not _moved_toward(before, after, position_percent):
                 raise PositionVerificationPending(
-                    "Position write completed and the responding shade has not reached the target.",
+                    "Position write completed and the responding shade did not move "
+                    "toward the target.",
                     after,
                 )
+            # Accepted and travelling: the shade will keep moving after the
+            # session closes, so leave verification to the caller's next read.
             return after, True
 
         return await self._run_session(operation)

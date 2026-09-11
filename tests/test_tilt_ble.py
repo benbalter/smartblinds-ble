@@ -12,7 +12,11 @@ import pytest
 import tilt_helpers as H
 from bleak.exc import BleakError
 
-from smartblinds_ble.tilt.ble import TiltBleError, TiltShadeClient
+from smartblinds_ble.tilt.ble import (
+    PositionVerificationPending,
+    TiltBleError,
+    TiltShadeClient,
+)
 from smartblinds_ble.tilt.protocol import AuthenticationError
 
 KEY = bytes(range(32))
@@ -61,6 +65,40 @@ async def test_set_position_is_noop_when_already_at_target():
     assert moved is False
     assert status.position_percent == 50
     assert shade.set_position_calls == 0  # never issued a movement
+
+
+async def test_set_position_returns_while_shade_is_still_travelling():
+    # These motors take tens of seconds to move; a shade that has accepted the
+    # command and started travelling is in flight, not a failure. Raising here
+    # aborted the real sunset automation.
+    shade = H.FakeShadeClient(KEY, start_position=0, travel_fraction=0.4)
+    client = TiltShadeClient(
+        MAC, KEY, allow_position_writes=True, client_factory=_factory_for(shade)
+    )
+    status, moved = await client.set_position_and_read_status(100, settle_seconds=0)
+    assert moved is True
+    assert status.position_percent == 40  # under way, nowhere near the target
+    assert shade.set_position_calls == 1  # and never resent
+
+
+async def test_set_position_raises_when_shade_does_not_move():
+    shade = H.FakeShadeClient(KEY, start_position=0, travel_fraction=0.0)
+    client = TiltShadeClient(
+        MAC, KEY, allow_position_writes=True, client_factory=_factory_for(shade)
+    )
+    with pytest.raises(PositionVerificationPending) as err:
+        await client.set_position_and_read_status(100, settle_seconds=0)
+    assert err.value.status.position_percent == 0  # carries what the shade reported
+    assert shade.set_position_calls == 1
+
+
+async def test_set_position_raises_when_shade_moves_away_from_target():
+    shade = H.FakeShadeClient(KEY, start_position=50, travel_fraction=-0.4)
+    client = TiltShadeClient(
+        MAC, KEY, allow_position_writes=True, client_factory=_factory_for(shade)
+    )
+    with pytest.raises(PositionVerificationPending):
+        await client.set_position_and_read_status(100, settle_seconds=0)
 
 
 async def test_position_write_disabled_by_default():
