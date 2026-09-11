@@ -8,10 +8,20 @@ LE** — **no proprietary hub, no cloud account, no phone app required** — and
 built to run through **Home Assistant** and cheap **ESP32 / ESPHome Bluetooth
 Proxies**.
 
-> **Status: pre-alpha / bring-up.** The BLE protocol was reverse-engineered in 2018
-> and is **not yet re-verified** on current firmware — see [`docs/ROADMAP.md`](docs/ROADMAP.md)
-> (Milestone 0 gates everything). The **cloud key-export tool below works today**,
-> independent of that.
+> **Status depends on which hardware you own** — the two generations share a brand
+> and nothing else ([details](docs/PROTOCOL.md)):
+>
+> - **Tilt roller shades** (advertise `RollerSh`) — **working.** The encrypted
+>   protocol is implemented and verified on hardware: four shades authenticate,
+>   report live position and battery, and move on command through an ESPHome
+>   Bluetooth Proxy. Paired with the
+>   [`ha-smartblinds-ble`](https://github.com/benbalter/ha-smartblinds-ble) Home
+>   Assistant integration.
+> - **Legacy MySmartBlinds tilt motors** (advertise `SmartBlind_DFU`) —
+>   **unverified.** That protocol comes from 2018 reverse engineering and has never
+>   been confirmed on a real motor; the constants are a labelled hypothesis. See
+>   [`docs/ROADMAP.md`](docs/ROADMAP.md) (M0-L). The **cloud key-export tool below
+>   works today**, independent of that.
 >
 > Unofficial project. Not affiliated with, authorized by, or endorsed by
 > MySmartBlinds, Tilt, or SmarterHome. Use at your own risk; may void your warranty.
@@ -38,17 +48,15 @@ after a single login. Once the cloud shuts down, keys are only recoverable the h
 way (brute-force or Bluetooth sniffing). This step needs **no extra hardware**:
 
 ```bash
-# Not on PyPI yet — install from GitHub. Use the maintained docBliny fork of the
-# cloud client (PyPI's build is stale and no longer logs in):
-pip install "git+https://github.com/docBliny/smartblinds-client.git" \
-            "git+https://github.com/benbalter/smartblinds-ble.git"
+# The cloud client must come from the maintained docBliny fork — PyPI's build is
+# stale and no longer logs in, so a git URL can't be pinned in a published extra:
+pip install smartblinds-ble "git+https://github.com/docBliny/smartblinds-client.git"
 
 smartblinds-import-cloud            # cloud email/password -> smartblinds-keys.json
 ```
 
 > If pip errors with `externally-managed-environment`, run it in a venv:
 > `python3 -m venv .venv && . .venv/bin/activate` then re-run the install.
-> Once this is published to PyPI, the above collapses to `pip install "smartblinds-ble[cloud]"`.
 
 The output holds `{name, mac, key}` per shade and is your **offline insurance** if
 the cloud disappears. Keep it safe — it contains secrets (gitignored by default).
@@ -80,24 +88,60 @@ Two layers:
 
 1. **`smartblinds-ble`** (this repo) — a small async, `bleak`-based Python library
    for talking to the motors over BLE.
-2. **`ha-smartblinds-ble`** (in progress) — a HACS-installable **Home Assistant**
-   integration exposing each shade as an optimistic tilt `cover`, working through
-   ESPHome Bluetooth Proxies.
+2. **[`ha-smartblinds-ble`](https://github.com/benbalter/ha-smartblinds-ble)** — a
+   HACS-installable **Home Assistant** integration exposing each shade as a
+   position `cover` plus a battery `sensor`, routed through ESPHome Bluetooth
+   Proxies.
 
 ## Two things everyone gets stuck on
 
-- **The per-motor key.** Best: export it from the cloud with `smartblinds-import-cloud`
-  (above) while you still can. Offline fallback: brute-force the first byte with
-  `smartblinds-find-key`, or sniff the app once. See [`docs/PROTOCOL.md`](docs/PROTOCOL.md).
-- **No state feedback.** The motors are open-loop (reads return `0xFF`). Position is
-  tracked optimistically; changes made from the app or a physical wand are invisible.
+- **The per-shade key.** *Legacy:* export it from the cloud with
+  `smartblinds-import-cloud` (above) while you still can; offline fallback is
+  brute-forcing the first byte with `smartblinds-find-key`. *Tilt:* the 32-byte
+  `pairingKey` lives in the Tilt cloud store and **cannot** be brute-forced or
+  sniffed — get it out before the cloud dies, and back it up, because there is no
+  second chance. See [`docs/PROTOCOL.md`](docs/PROTOCOL.md).
+- **State feedback differs by generation.** Tilt roller shades report real
+  position, battery, and charge state. Legacy motors are open-loop (reads return
+  `0xFF`), so their position is tracked optimistically and changes made from the
+  app or a physical wand are invisible.
+- **A position write returns before the shade arrives.** The motor acknowledges
+  and starts moving; travel takes tens of seconds. Verify by re-reading later —
+  never by re-sending the command.
 
 ## Quick start (bring-up, local adapter)
 
 ```bash
-pip install -e ".[dev]"
+pip install smartblinds-ble     # or: pip install -e ".[dev]" to hack on it
+pytest                          # protocol/encoding tests against a fake shade
+```
+
+**Tilt roller shades** (verified path) — needs the shade's MAC and its 64-hex
+pairing key:
+
+```python
+import asyncio
+from smartblinds_ble.tilt import TiltShadeClient
+
+MAC = "C2:A3:D6:9B:F0:86"
+KEY = bytes.fromhex("<64 hex characters from the Tilt cloud store>")
+
+async def main():
+    status = await TiltShadeClient(MAC, KEY).read_status()
+    print(status.position_percent, status.battery_percent)
+
+    # Movement is opt-in. The call returns once the shade has accepted the
+    # command and started moving — tens of seconds before it arrives.
+    mover = TiltShadeClient(MAC, KEY, allow_position_writes=True)
+    await mover.set_position_and_read_status(100)
+
+asyncio.run(main())
+```
+
+**Legacy tilt motors** (unverified — constants are a hypothesis):
+
+```bash
 smartblinds-find-key            # scan + brute-force keys for nearby motors
-pytest                          # protocol/encoding unit tests (mocked BLE)
 ```
 
 ```python
@@ -134,17 +178,23 @@ this library — directly from a computer/Raspberry Pi, or through Home Assistan
 an ESP32 Bluetooth Proxy.
 
 ### Does this work with Home Assistant?
-That's the goal — a local HACS integration (`ha-smartblinds-ble`) exposing each
-shade as a tilt `cover`, no cloud bridge. It's in progress and gated on hardware
-validation (see the roadmap).
+Yes, for Tilt roller shades:
+[`ha-smartblinds-ble`](https://github.com/benbalter/ha-smartblinds-ble) is a HACS
+custom repository that gives each shade a position `cover` and a battery `sensor`,
+with no cloud bridge. Legacy motors are not supported there yet — that waits on
+M0-L in the roadmap.
 
 ### Do I need an ESP32 / ESPHome Bluetooth Proxy?
 Only for range. Any Home Assistant Bluetooth adapter works if it's near the shades;
 ESP32 ESPHome Bluetooth Proxies (a few dollars each) extend coverage across a house.
 
 ### Does it work with the Tilt app still installed?
-Avoid using both at once — the app and this library can fight over position, since
-the motors don't report their true state.
+Installed, yes; connected at the same time, no. A shade accepts **one central at a
+time**, so a phone with the app open in the same room will make Home Assistant's
+connections fail in a way that looks exactly like a range problem. Force-quit the
+app when handing control over. (Tilt shades do report real position, so the two
+won't disagree about state the way legacy motors would — they just can't share the
+radio link.)
 
 ## Credits
 
@@ -154,6 +204,10 @@ the motors don't report their true state.
 - [`ianlevesque/smartblinds-client`](https://github.com/ianlevesque/smartblinds-client)
   and [`docBliny/ha-mysmartblinds`](https://github.com/docBliny/ha-mysmartblinds) —
   the cloud client and (cloud-based) HA integration this borrows the key-export idea from.
+- [`Sunrise-Labs-Dot-AI/tilt-local-bridge`](https://github.com/Sunrise-Labs-Dot-AI/tilt-local-bridge)
+  — reverse engineered the **encrypted Tilt roller-shade protocol**, which packet
+  captures alone could not yield. Its codec is vendored here byte-for-byte (MIT);
+  this repo adds an async `bleak` transport, proxy routing, and a test harness.
 - [`LennP/ha-motionblinds_ble`](https://github.com/LennP/ha-motionblinds_ble) — the
   template for the Home Assistant integration layer.
 

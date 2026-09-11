@@ -6,18 +6,30 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Local, hub-free & cloud-free BLE control of **MySmartBlinds / Tilt** shade motors, so
 they keep working after the (winding-down) vendor cloud dies. Two layers: this
-`smartblinds-ble` async, `bleak`-based Python library, and a planned
-`ha-smartblinds-ble` HACS integration (separate repo). Unofficial, not affiliated
-with the vendor. Apache-2.0; a modern async port of `dnschneid/pysmartblinds` (see
-`NOTICE`).
+`smartblinds-ble` async, `bleak`-based Python library, and the
+`ha-smartblinds-ble` HACS integration (separate repo, working). Unofficial, not
+affiliated with the vendor. Apache-2.0; a modern async port of
+`dnschneid/pysmartblinds` (see `NOTICE`) plus a vendored MIT Tilt codec.
 
-## ⚠️ M0 gates everything
+On PyPI as [`smartblinds-ble`](https://pypi.org/project/smartblinds-ble/) (0.1.1),
+published by `release.yml` via Trusted Publishing on a `v*` tag.
 
-The BLE protocol here was reverse-engineered in 2018 (legacy MySmartBlinds, firmware
-2.0) and is **UNVERIFIED on current hardware**. The constants in `const.py` and the
-GATT writes in `blind.py` are a *hypothesis*, marked as such. Do not describe them as
-working. `docs/ROADMAP.md` Milestone 0 = confirm connect + key + tilt-write on a real
-shade before any packaging/publishing. Everything downstream is contingent on M0.
+## ⚠️ Two protocols, two very different maturity levels
+
+Never generalize a claim from one to the other — most documentation bugs in this
+repo have been exactly that mistake.
+
+- **Tilt roller shades** (advertise `RollerSh`) — **WORKING, verified on hardware
+  2026-09-11.** Four shades authenticate, report live position/battery, and move on
+  command through an ESPHome Bluetooth Proxy. Code: `src/smartblinds_ble/tilt/`.
+  These shades **do** report real state, so the HA cover is a genuine position
+  cover and must **not** be `assumed_state`.
+- **Legacy MySmartBlinds tilt motors** (advertise `SmartBlind_DFU`) —
+  **UNVERIFIED.** Reverse-engineered in 2018 against firmware 2.0; the constants in
+  `const.py` and the GATT writes in `blind.py` are a *hypothesis*, marked as such.
+  Do not describe them as working. `docs/ROADMAP.md` M0-L lists what would settle
+  it; nobody has legacy hardware to test with. This path is open-loop (reads return
+  `0xFF`), so *its* position is tracked optimistically.
 
 ## Commands
 
@@ -34,12 +46,19 @@ shade before any packaging/publishing. Everything downstream is contingent on M0
 
 ## Architecture
 
-- `blind.py` — `SmartBlind`, the async `bleak` client. Takes a `BLEDevice` (not just an
-  address) so connections route through Home Assistant / ESPHome Bluetooth proxies.
+- `tilt/` — the **working** Tilt path: `protocol.py` (vendored MIT codec from
+  `Sunrise-Labs-Dot-AI/tilt-local-bridge`, byte-for-byte — do not "clean up") and
+  `ble.py` (`TiltShadeClient`, async transport, `mac + key`). Encrypted session:
+  HMAC-SHA256 key proof, then AES-128-CTR. `set_position_and_read_status` returns
+  while the shade is **still travelling** — accepted ≠ arrived; it raises only if
+  the shade never moved toward the target. Never verify by re-sending.
+- `blind.py` — `SmartBlind`, the **legacy** (unverified) async `bleak` client. Takes a
+  `BLEDevice` (not just an address) so connections route through Home Assistant /
+  ESPHome Bluetooth proxies.
   Every op: connect → write key (handle `0x001b`) → write a position byte 0–200 (handle
-  `0x001f`) → disconnect. **Open-loop**: motors don't report state (reads return
-  `0xFF`), so `position` is tracked optimistically — the eventual HA cover must be
-  `assumed_state`.
+  `0x001f`) → disconnect. **Open-loop**: legacy motors don't report state (reads
+  return `0xFF`), so `position` is tracked optimistically. (Tilt shades are not
+  open-loop — see above.)
 - `const.py` — protocol constants, all flagged UNVERIFIED. `scanner.py` — discover
   `SmartBlind_DFU` devices.
 - `cloud.py` + `tools/import_cloud.py` — **optional** (`[cloud]` extra) key export from
@@ -47,7 +66,8 @@ shade before any packaging/publishing. Everything downstream is contingent on M0
 - `tools/find_key.py` — cloud-independent BLE brute-force of the first key byte.
 - `contrib/mitm_tilt_addon.py` — mitmproxy addon for reversing the Tilt cloud API;
   auto-redacts secrets, writes `tilt-capture/`.
-- `docs/` — `PROTOCOL.md` (RE'd protocol), `ROADMAP.md` (M0-gated milestones),
+- `docs/` — `PROTOCOL.md` (Part 1 = legacy, unverified; Part 2 = Tilt, verified),
+  `ROADMAP.md` (Tilt track shipped; legacy M0-L still open),
   `CAPTURE.md` (definitive field notes for capturing the protocol; read before
   attempting either a network-MITM or BLE capture).
 
@@ -83,4 +103,8 @@ cloud-only AWS IoT MQTT client with no local API** (verified: all ports closed) 
   is redacted but still holds emails/MACs/room names — all gitignored, keep them out.
 - **Python**: `requires-python >=3.11`; the `type X = Y` statement (3.12+) breaks older
   parsers — avoid it.
-- Not on PyPI yet — install from git. Publishing (final name + PyPI) waits for M0.
+- **Releasing**: bump `version` in `pyproject.toml`, then push a signed `v*` tag
+  (`git tag -m … vX.Y.Z`; this repo signs tags, so `-m` is required). `release.yml`
+  builds and publishes to PyPI on its own. The pending-publisher form on pypi.org
+  must exist *before* the first run of a new project, or the run fails
+  `invalid-publisher`; re-running the same run after adding it is enough.

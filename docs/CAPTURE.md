@@ -3,6 +3,14 @@
 Field notes for reverse-engineering current **Tilt**-era hardware (roller shades +
 bridge). Written from a real capture session; save yourself the dead ends.
 
+> **The Tilt shade protocol no longer needs capturing** — it is solved,
+> implemented, and verified on hardware; see [PROTOCOL.md](PROTOCOL.md) Part 2.
+> What remains useful here: extracting **pairing keys** from the Tilt cloud store
+> (the one step with no offline substitute), the proof that the bridge is not a
+> local control path, and the method itself if you are chasing a *different*
+> device. The one lesson worth carrying: the answer was already published by
+> another project, and capturing came first only because nobody checked.
+
 ## The two control paths (and which one to target)
 
 | Path | Transport | Durable? | Use it for |
