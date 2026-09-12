@@ -229,9 +229,18 @@ class TiltShadeClient:
                 timeout=self._connect_timeout_seconds,
                 pair=False,
             )
+            # A factory may be async and return an *already connected* client. That
+            # is how a caller hands over connection establishment to something
+            # smarter than a bare connect() — notably
+            # bleak_retry_connector.establish_connection(), which Home Assistant
+            # asks integrations to use because it handles proxy retries and frees
+            # connection slots that would otherwise leak on a failed attempt.
+            if inspect.isawaitable(client):
+                client = await client
             session: _TiltBleSession | None = None
             try:
-                await client.connect()
+                if not client.is_connected:
+                    await client.connect()
                 if not client.is_connected:
                     raise TiltBleError(f"Unable to connect to configured shade {self.shade_id}.")
                 session = _TiltBleSession(

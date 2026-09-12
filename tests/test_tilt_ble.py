@@ -101,6 +101,33 @@ async def test_set_position_raises_when_shade_moves_away_from_target():
         await client.set_position_and_read_status(100, settle_seconds=0)
 
 
+async def test_async_factory_may_return_an_already_connected_client():
+    # Home Assistant wants integrations to connect through
+    # bleak_retry_connector.establish_connection(), which is async and hands back a
+    # connected client. The session must accept that instead of calling connect()
+    # a second time.
+    shade = H.FakeShadeClient(KEY, start_position=40)
+    connect_calls = 0
+    original_connect = shade.connect
+
+    async def counting_connect():
+        nonlocal connect_calls
+        connect_calls += 1
+        await original_connect()
+
+    shade.connect = counting_connect
+
+    async def factory(_mac, **_kwargs):
+        await shade.connect()  # the "establish_connection" step
+        return shade
+
+    client = TiltShadeClient(MAC, KEY, client_factory=factory)
+    status = await client.read_status()
+    assert status.position_percent == 40
+    assert connect_calls == 1  # the session did not reconnect on top of it
+    assert shade.is_connected is False  # still cleaned up afterwards
+
+
 async def test_position_write_disabled_by_default():
     shade = H.FakeShadeClient(KEY, start_position=0)
     client = TiltShadeClient(MAC, KEY, client_factory=_factory_for(shade))
