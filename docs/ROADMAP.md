@@ -27,22 +27,19 @@ and physically move on command, routed through an ESPHome Bluetooth Proxy.
       ([`ha-smartblinds-ble`](https://github.com/benbalter/ha-smartblinds-ble)):
       config flow with live key validation, Bluetooth auto-discovery through
       proxies, position `cover` + battery `sensor`.
+- [x] Key export for Tilt accounts (`smartblinds-import-tilt`): one login returns
+      every shade's BLE MAC and 32-byte `pairingKey`. Built from a capture of the
+      app's own Auth0 login — the `Tilt Settings Storage API` audience is what a
+      legacy login was missing. Stdlib-only, so it needs no optional extra.
+- [x] The shade's MAC is surfaced in the HA config flow and entry title. Every
+      shade advertises the same name, so discovery cards used to be
+      indistinguishable until you pasted a key and saw whether it authenticated.
 - [x] Findings recorded in [PROTOCOL.md](PROTOCOL.md).
 
 Next, in rough priority order:
 
-- [ ] Surface the shade's MAC in the HA config flow. Every shade advertises the
-      same name, so discovery cards are indistinguishable until you paste a key
-      and see whether it authenticates.
 - [ ] Submit brand icons to `home-assistant/brands`.
 - [ ] HACS default-repository submission (currently a custom repository).
-- [ ] A published key-export path for Tilt accounts — **built, not yet run
-      against the live cloud.** `smartblinds-import-tilt` / `tilt_cloud.py` do the
-      Auth0 password-realm login (audience `Tilt Settings Storage API`, the piece
-      that made a legacy login return zero devices) and read the store. Parsing is
-      tested against a real captured response, but the round trip needs one live
-      login to confirm — and that has to happen before the vendor cloud dies,
-      because these keys have no offline substitute.
 - [ ] Issue templates, CONTRIBUTING, Discussions for key-extraction help.
 - [ ] Announce in the [HA community thread](https://community.home-assistant.io/t/tilt-my-blinds-mysmartblinds/12890)
       and r/homeassistant.

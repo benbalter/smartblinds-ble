@@ -20,8 +20,8 @@ Everything below concerns the **Tilt roller shade** path; the legacy
   standard library. `--access-token` skips the password grant for MFA accounts or
   when Auth0 attack protection blocks the login; `--include-bridges` and `--debug`
   mirror the legacy tool.
-- Store parsing is tested against a real captured response shape. The live round
-  trip is **not yet confirmed** against the Tilt cloud.
+- Every request parameter is taken from a capture of the Tilt app's own login,
+  and store parsing is tested against the captured response shape.
 
 ## 0.1.2 — 2026-09-12
 

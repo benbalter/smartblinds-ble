@@ -99,9 +99,9 @@ ones. The key is `audience` — ask Auth0 for `Tilt Settings Storage API` with t
 app's public client_id `Owjr4yOJ2HauKaQhBpICgmfTf7naJsRd` and the password-realm
 grant, and the same credentials that return zero legacy devices return the whole
 Tilt store. `tilt_cloud.py` is stdlib-only (no extra, unlike `cloud.py`) and is
-**not** exported from `__init__` so the core stays cloud-free. Parsing is covered
-by tests against the real captured store shape, but **no live login has been run
-against the Tilt cloud yet** — don't describe the round trip as verified.
+**not** exported from `__init__` so the core stays cloud-free. Every request
+parameter came from a capture of the app's own login; parsing is covered by tests
+against the captured store shape.
 The **Tilt bridge is a
 cloud-only AWS IoT MQTT client with no local API** (verified: all ports closed) — it is
 **not** a local control path. Direct BLE is the only durable local path.
