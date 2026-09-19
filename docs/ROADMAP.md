@@ -36,10 +36,13 @@ Next, in rough priority order:
       and see whether it authenticates.
 - [ ] Submit brand icons to `home-assistant/brands`.
 - [ ] HACS default-repository submission (currently a custom repository).
-- [ ] A published key-export path for Tilt accounts. The cloud store holds the
-      keys and `cloud.py` only speaks to the *legacy* API, so today's export is a
-      manual capture. This is the single biggest gap for anyone else adopting
-      this — and it closes when the vendor cloud dies.
+- [ ] A published key-export path for Tilt accounts — **built, not yet run
+      against the live cloud.** `smartblinds-import-tilt` / `tilt_cloud.py` do the
+      Auth0 password-realm login (audience `Tilt Settings Storage API`, the piece
+      that made a legacy login return zero devices) and read the store. Parsing is
+      tested against a real captured response, but the round trip needs one live
+      login to confirm — and that has to happen before the vendor cloud dies,
+      because these keys have no offline substitute.
 - [ ] Issue templates, CONTRIBUTING, Discussions for key-extraction help.
 - [ ] Announce in the [HA community thread](https://community.home-assistant.io/t/tilt-my-blinds-mysmartblinds/12890)
       and r/homeassistant.

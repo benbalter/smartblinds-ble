@@ -6,6 +6,23 @@ This project has two hardware tracks (see [`docs/PROTOCOL.md`](docs/PROTOCOL.md)
 Everything below concerns the **Tilt roller shade** path; the legacy
 `SmartBlind_DFU` path remains an unverified hypothesis and has not changed.
 
+## Unreleased
+
+- **Tilt cloud key export** (`smartblinds-import-tilt`, `smartblinds_ble.tilt_cloud`).
+  One login returns every Tilt shade's BLE MAC and 32-byte `pairingKey` — the keys
+  that cannot be brute-forced or sniffed, and that disappear with the vendor cloud.
+- The Tilt backend shares the `mysmartblinds.auth0.com` tenant with the legacy
+  cloud; the difference is `audience`. Requesting `Tilt Settings Storage API` with
+  the app's public client id and the password-realm grant returns a token the
+  store accepts, which is why a legacy login previously succeeded but returned
+  zero devices.
+- Needs **no optional extra** — unlike the legacy importer it uses only the
+  standard library. `--access-token` skips the password grant for MFA accounts or
+  when Auth0 attack protection blocks the login; `--include-bridges` and `--debug`
+  mirror the legacy tool.
+- Store parsing is tested against a real captured response shape. The live round
+  trip is **not yet confirmed** against the Tilt cloud.
+
 ## 0.1.2 — 2026-09-12
 
 - `TiltShadeClient`'s `client_factory` may now be **async** and may return an

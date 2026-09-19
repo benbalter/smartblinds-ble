@@ -224,12 +224,33 @@ genuine position and **must not** be `assumed_state`.
 
 Each shade needs its 32-byte `pairingKey` (64 hex characters). These come from the
 Tilt cloud store (`api.tiltsmarthome.com/v2/store/tilt`), where each shade appears
-as `{id = BLE MAC, name, pairingKey}`. Use the `access_token` — an `id_token` gets
-a 401. Note the Tilt backend shares the `mysmartblinds.auth0.com` tenant with the
-legacy cloud but uses a different `client_id`, so a *legacy* login succeeds and
-returns zero devices for a Tilt account.
+as `{id = BLE MAC, name, pairingKey}`. `smartblinds-import-tilt` does the whole
+round trip; `tilt_cloud.py` implements it with the standard library alone.
 
-**There is no offline path to these keys.** They cannot be brute-forced (32 bytes)
+The exchange, for the record:
+
+| Step | Value |
+|---|---|
+| Token endpoint | `https://mysmartblinds.auth0.com/oauth/token` |
+| `grant_type` | `http://auth0.com/oauth/grant-type/password-realm` |
+| `client_id` | `Owjr4yOJ2HauKaQhBpICgmfTf7naJsRd` (public; no client secret) |
+| `realm` | `Username-Password-Authentication` |
+| **`audience`** | **`Tilt Settings Storage API`** |
+| `scope` | `openid profile email offline_access` |
+| Store | `GET api.tiltsmarthome.com/v2/store/tilt`, `Bearer <access_token>` |
+
+**`audience` is the whole trick.** The Tilt backend shares the
+`mysmartblinds.auth0.com` tenant with the legacy cloud, so a legacy login
+*succeeds* — it just mints a token for the legacy API, which is why a legacy
+account query returns zero devices for a Tilt user and why an `id_token` gets a
+401 here. Ask for the Tilt audience and the same credentials work.
+
+Two live-login failure modes: an MFA-enabled account gets `mfa_required` (the
+password grant cannot complete it), and Auth0 attack protection can reject a
+password grant from an unfamiliar IP. Both are worked around by capturing an
+`access_token` from the app and passing `--access-token`.
+
+**There is still no offline path to these keys.** They cannot be brute-forced (32 bytes)
 or sniffed (see below). With the vendor cloud winding down, treat an exported key
 as irreplaceable and back it up somewhere durable.
 

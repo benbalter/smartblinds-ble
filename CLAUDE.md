@@ -42,7 +42,8 @@ repo have been exactly that mistake.
 - Run a tool without installing (src/ layout needs the path): `PYTHONPATH=src python -m smartblinds_ble.tools.find_key`
 - CLIs (`[project.scripts]`): `smartblinds-find-key` (BLE brute-force key discovery),
   `smartblinds-import-cloud` (legacy-cloud key export; flags `--debug`,
-  `--include-deleted`, `--token`).
+  `--include-deleted`, `--token`), `smartblinds-import-tilt` (**Tilt**-cloud key
+  export; flags `--debug`, `--include-bridges`, `--access-token`).
 - CI: `.github/workflows/ci.yml` runs `ruff check` + `pytest` on Python 3.11/3.12/3.13.
 
 ## Architecture
@@ -69,7 +70,9 @@ repo have been exactly that mistake.
 - `const.py` — protocol constants, all flagged UNVERIFIED. `scanner.py` — discover
   `SmartBlind_DFU` devices.
 - `cloud.py` + `tools/import_cloud.py` — **optional** (`[cloud]` extra) key export from
-  the vendor cloud, isolated so the core stays cloud-free. See "Two backends" below.
+  the *legacy* vendor cloud, isolated so the core stays cloud-free.
+  `tilt_cloud.py` + `tools/import_tilt.py` — the same for **Tilt** accounts, but
+  stdlib-only, so it needs no extra. See "Two backends" below.
 - `tools/find_key.py` — cloud-independent BLE brute-force of the first key byte.
 - `contrib/mitm_tilt_addon.py` — mitmproxy addon for reversing the Tilt cloud API;
   auto-redacts secrets, writes `tilt-capture/`.
@@ -91,8 +94,15 @@ The hardware split into two ecosystems that do **not** share a data backend:
   pairingKey}`; `pairingKey` is 32 bytes → Tilt BLE is likely **encrypted/authenticated**,
   unlike the legacy protocol. Use `access_token` (id_token → 401).
 
-Implications: `cloud.py` only serves *legacy* accounts. Tilt devices need the Tilt API
-(different Auth0 client_id `Owjr4yOJ2H…`, not yet built) or BLE. The **Tilt bridge is a
+Implications: `cloud.py` only serves *legacy* accounts; `tilt_cloud.py` serves Tilt
+ones. The key is `audience` — ask Auth0 for `Tilt Settings Storage API` with the
+app's public client_id `Owjr4yOJ2HauKaQhBpICgmfTf7naJsRd` and the password-realm
+grant, and the same credentials that return zero legacy devices return the whole
+Tilt store. `tilt_cloud.py` is stdlib-only (no extra, unlike `cloud.py`) and is
+**not** exported from `__init__` so the core stays cloud-free. Parsing is covered
+by tests against the real captured store shape, but **no live login has been run
+against the Tilt cloud yet** — don't describe the round trip as verified.
+The **Tilt bridge is a
 cloud-only AWS IoT MQTT client with no local API** (verified: all ports closed) — it is
 **not** a local control path. Direct BLE is the only durable local path.
 

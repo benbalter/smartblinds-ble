@@ -44,8 +44,45 @@ If you're searching for any of the following, you're in the right place:
 
 Each motor needs a small BLE **key** to accept commands. While the vendor cloud is
 still online, it will hand back the real key for **every shade on your account**
-after a single login. Once the cloud shuts down, keys are only recoverable the hard
-way (brute-force or Bluetooth sniffing). This step needs **no extra hardware**:
+after a single login. Once it shuts down, keys are recoverable only the hard way —
+and for Tilt shades, not at all. This step needs **no extra hardware**.
+
+**Which app did you set your shades up in?** The two generations use separate
+backends, and a login to the wrong one succeeds while returning nothing.
+
+| Your app | Tool | Output |
+|---|---|---|
+| **Tilt** (roller shades) | `smartblinds-import-tilt` | `tilt-keys.json` |
+| **MySmartBlinds** (tilt motors) | `smartblinds-import-cloud` | `smartblinds-keys.json` |
+
+> If pip errors with `externally-managed-environment`, run it in a venv:
+> `python3 -m venv .venv && . .venv/bin/activate` then re-run the install.
+
+> Either importer logs into **your own account** to retrieve **your own devices'**
+> keys, for interoperability with hardware you own. The password is never printed
+> or saved. Use your own credentials, at your own risk.
+
+### Tilt roller shades
+
+```bash
+pip install smartblinds-ble     # no extra needed; this importer is stdlib-only
+
+smartblinds-import-tilt         # Tilt email/password -> tilt-keys.json
+```
+
+Each shade comes back as `{name, mac, key, room}`, where `key` is the 64-hex
+`pairingKey` — all that `TiltShadeClient` and the Home Assistant integration
+need. A Tilt key **cannot** be brute-forced (32 bytes) or recovered from a BLE
+sniff, so this is the one step with **no offline substitute**. Export now and back
+the file up somewhere durable; once the cloud is gone, an un-exported key is gone
+with it.
+
+If the account has MFA, or Auth0's attack protection blocks a password grant from
+an unfamiliar IP, capture an `access_token` from the app (see
+[`docs/CAPTURE.md`](docs/CAPTURE.md)) and pass `--access-token`. `--debug` reports
+what the account exposes without writing anything.
+
+### Legacy MySmartBlinds motors
 
 ```bash
 # The cloud client must come from the maintained docBliny fork — PyPI's build is
@@ -55,20 +92,11 @@ pip install smartblinds-ble "git+https://github.com/docBliny/smartblinds-client.
 smartblinds-import-cloud            # cloud email/password -> smartblinds-keys.json
 ```
 
-> If pip errors with `externally-managed-environment`, run it in a venv:
-> `python3 -m venv .venv && . .venv/bin/activate` then re-run the install.
-
 The output holds `{name, mac, key}` per shade and is your **offline insurance** if
-the cloud disappears. Keep it safe — it contains secrets (gitignored by default).
+the cloud disappears. Unlike a Tilt key, a legacy key can also be brute-forced
+offline with `smartblinds-find-key` — slower, but a genuine fallback.
 
-> **Legacy app only.** This exports from the *legacy MySmartBlinds* cloud. If you
-> set your shades up in the newer **Tilt** app, they live in a separate backend and
-> won't appear here (login works but returns zero blinds). In that case, skip the
-> cloud and read the key directly over BLE with `smartblinds-find-key`.
-
-> The importer logs into **your own account** to retrieve **your own devices'**
-> keys, for interoperability with hardware you own. Use your own credentials, at
-> your own risk.
+Both outputs contain secrets and are gitignored by default. Keep them safe.
 
 ## Why this exists
 
@@ -97,10 +125,10 @@ Two layers:
 
 - **The per-shade key.** *Legacy:* export it from the cloud with
   `smartblinds-import-cloud` (above) while you still can; offline fallback is
-  brute-forcing the first byte with `smartblinds-find-key`. *Tilt:* the 32-byte
-  `pairingKey` lives in the Tilt cloud store and **cannot** be brute-forced or
-  sniffed — get it out before the cloud dies, and back it up, because there is no
-  second chance. See [`docs/PROTOCOL.md`](docs/PROTOCOL.md).
+  brute-forcing the first byte with `smartblinds-find-key`. *Tilt:* export it with
+  `smartblinds-import-tilt` (above). The 32-byte `pairingKey` **cannot** be
+  brute-forced or sniffed, so get it out before the cloud dies and back it up —
+  there is no second chance. See [`docs/PROTOCOL.md`](docs/PROTOCOL.md).
 - **State feedback differs by generation.** Tilt roller shades report real
   position, battery, and charge state. Legacy motors are open-loop (reads return
   `0xFF`), so their position is tracked optimistically and changes made from the
