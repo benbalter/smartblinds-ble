@@ -11,8 +11,9 @@ they keep working after the (winding-down) vendor cloud dies. Two layers: this
 affiliated with the vendor. Apache-2.0; a modern async port of
 `dnschneid/pysmartblinds` (see `NOTICE`) plus a vendored MIT Tilt codec.
 
-On PyPI as [`smartblinds-ble`](https://pypi.org/project/smartblinds-ble/) (0.1.1),
-published by `release.yml` via Trusted Publishing on a `v*` tag.
+On PyPI as [`smartblinds-ble`](https://pypi.org/project/smartblinds-ble/) (0.1.2),
+published by `release.yml` via Trusted Publishing on a `v*` tag. Per-release
+behaviour changes live in `CHANGELOG.md` — update it with the version bump.
 
 ## ⚠️ Two protocols, two very different maturity levels
 
@@ -52,6 +53,12 @@ repo have been exactly that mistake.
   HMAC-SHA256 key proof, then AES-128-CTR. `set_position_and_read_status` returns
   while the shade is **still travelling** — accepted ≠ arrived; it raises only if
   the shade never moved toward the target. Never verify by re-sending.
+  `client_factory` may be sync or async and may return an **already connected**
+  client: an awaitable result is awaited and `connect()` is skipped when the client
+  reports connected. It exists so callers can connect via
+  `bleak_retry_connector.establish_connection()` — a bare `BleakClient.connect()`
+  leaks an ESPHome proxy connection slot on failure, and a proxy only has three
+  (that took the live proxy down on 2026-09-12).
 - `blind.py` — `SmartBlind`, the **legacy** (unverified) async `bleak` client. Takes a
   `BLEDevice` (not just an address) so connections route through Home Assistant /
   ESPHome Bluetooth proxies.

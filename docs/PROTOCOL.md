@@ -97,7 +97,9 @@ Answered for Tilt hardware (Part 2), and probably transferable:
 
 - **ESPHome proxy connection limits.** A proxy advertises 3 connection slots by
   default. Brief connect → session → disconnect cycles make four shades workable
-  on a single proxy; nothing needs a persistent connection.
+  on a single proxy; nothing needs a persistent connection. Brief *successful*
+  sessions are not the whole story, though — a **failed** attempt can leak a slot
+  outright; see the connection-slot note in Part 2's operational notes.
 
 ---
 
@@ -207,6 +209,16 @@ genuine position and **must not** be `assumed_state`.
 - **Sessions should be brief.** Connect → authenticate → one operation →
   disconnect. It spares the solar battery, avoids holding a proxy connection slot,
   and leaves the shade reachable from the app.
+- **A failed connection attempt can leak a proxy connection slot.** An ESPHome
+  proxy advertises only three, so slots lost to failed attempts accumulate until
+  the proxy stops accepting connections altogether and every shade behind it goes
+  unavailable — observed on 2026-09-12. Do not call `BleakClient.connect()`
+  directly; connect through
+  [`bleak_retry_connector.establish_connection()`](https://github.com/Bluetooth-Devices/bleak-retry-connector),
+  which retries through proxies and releases the slot when an attempt fails. Home
+  Assistant asks integrations to do this and logs a warning when they do not. In
+  `smartblinds-ble` this is what the `client_factory` argument to
+  `TiltShadeClient` is for (0.1.2+).
 
 ## Key acquisition
 

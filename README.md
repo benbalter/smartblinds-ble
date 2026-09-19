@@ -93,7 +93,7 @@ Two layers:
    position `cover` plus a battery `sensor`, routed through ESPHome Bluetooth
    Proxies.
 
-## Two things everyone gets stuck on
+## Things everyone gets stuck on
 
 - **The per-shade key.** *Legacy:* export it from the cloud with
   `smartblinds-import-cloud` (above) while you still can; offline fallback is
@@ -108,6 +108,11 @@ Two layers:
 - **A position write returns before the shade arrives.** The motor acknowledges
   and starts moving; travel takes tens of seconds. Verify by re-reading later —
   never by re-sending the command.
+- **Failed connections leak proxy connection slots.** An ESPHome proxy has three.
+  Connect through `bleak_retry_connector.establish_connection()` (see the
+  `client_factory` example below) rather than letting `bleak` connect directly, or
+  a run of failed attempts will eventually take the proxy down for every shade
+  behind it.
 
 ## Quick start (bring-up, local adapter)
 
@@ -123,7 +128,7 @@ pairing key:
 import asyncio
 from smartblinds_ble.tilt import TiltShadeClient
 
-MAC = "C2:A3:D6:9B:F0:86"
+MAC = "AA:BB:CC:DD:EE:FF"  # the shade's BLE MAC — its `id` in the Tilt cloud store
 KEY = bytes.fromhex("<64 hex characters from the Tilt cloud store>")
 
 async def main():
@@ -137,6 +142,45 @@ async def main():
 
 asyncio.run(main())
 ```
+
+### Hand off connection establishment (required behind a proxy)
+
+Don't let the library open the connection itself. Pass a `client_factory` that
+connects via
+[`bleak_retry_connector`](https://github.com/Bluetooth-Devices/bleak-retry-connector),
+which retries through proxies and — the part that bites — releases the proxy
+connection slot when an attempt fails. An ESPHome proxy has only three, and leaked
+slots take it down for every shade behind it.
+
+The factory needs a **`BLEDevice`**, not a bare address: that object is what
+carries the route to the proxy that can actually reach the shade. Home Assistant
+supplies it; a local scan cannot produce one for a remote proxy.
+
+```python
+from bleak import BleakClient
+from bleak_retry_connector import establish_connection
+from homeassistant.components import bluetooth
+
+async def read_through_proxy(hass, mac, key):
+    # HA resolves the address to a BLEDevice via whichever proxy hears the shade.
+    device = bluetooth.async_ble_device_from_address(hass, mac, connectable=True)
+
+    async def factory(address, *, timeout, **_kwargs):
+        return await establish_connection(BleakClient, device, address)
+
+    return await TiltShadeClient(mac, key, client_factory=factory).read_status()
+```
+
+Off Home Assistant, on a host whose own adapter is in range, the same factory
+works with a locally scanned device
+(`await BleakScanner.find_device_by_address(MAC)`) — that path is a local
+connection, not a proxied one. See `contrib/gate_auth_mac.py` for a runnable
+example.
+
+The factory may be sync or async, and may hand back an **already connected**
+client — the library awaits it when it is awaitable and skips `connect()` when it
+is already connected (0.1.2+). This is how the Home Assistant integration routes
+every session through ESPHome proxies.
 
 **Legacy tilt motors** (unverified — constants are a hypothesis):
 

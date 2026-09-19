@@ -15,8 +15,14 @@ and physically move on command, routed through an ESPHome Bluetooth Proxy.
 - [x] A position write physically moves the shade.
 - [x] Works **through an ESPHome Bluetooth Proxy** (FireBeetle 2 ESP32-S3-U), not
       just a local adapter.
+- [x] Proxy-routed connection handling hardened by real-world use: a
+      `client_factory` may connect via `bleak_retry_connector.establish_connection()`,
+      so failed attempts no longer leak the proxy's limited connection slots
+      (0.1.2). Position writes no longer treat a still-travelling shade as a
+      failure (0.1.1).
 - [x] Fake-shade test harness covering both halves of the link layer.
-- [x] Published to PyPI as [`smartblinds-ble`](https://pypi.org/project/smartblinds-ble/).
+- [x] Published to PyPI as [`smartblinds-ble`](https://pypi.org/project/smartblinds-ble/)
+      (0.1.2; see [CHANGELOG.md](../CHANGELOG.md)).
 - [x] Home Assistant integration
       ([`ha-smartblinds-ble`](https://github.com/benbalter/ha-smartblinds-ble)):
       config flow with live key validation, Bluetooth auto-discovery through
