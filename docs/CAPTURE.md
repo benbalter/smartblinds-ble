@@ -5,11 +5,11 @@ bridge). Written from a real capture session; save yourself the dead ends.
 
 > **The Tilt shade protocol no longer needs capturing** — it is solved,
 > implemented, and verified on hardware; see [PROTOCOL.md](PROTOCOL.md) Part 2.
-> What remains useful here: extracting **pairing keys** from the Tilt cloud store
-> (the one step with no offline substitute), the proof that the bridge is not a
-> local control path, and the method itself if you are chasing a *different*
-> device. The one lesson worth carrying: the answer was already published by
-> another project, and capturing came first only because nobody checked.
+> What remains useful here: a **fallback** route to the pairing keys when the
+> scripted export cannot log in, the proof that the bridge is not a local control
+> path, and the method itself if you are chasing a *different* device. The one
+> lesson worth carrying: the answer was already published by another project, and
+> capturing came first only because nobody checked.
 
 ## The two control paths (and which one to target)
 
@@ -26,7 +26,13 @@ bridge). Written from a real capture session; save yourself the dead ends.
 - So commands round-trip through AWS even on the same LAN, and you can't publish to
   it without the bridge's provisioned X.509 device cert. Dead end.
 
-## Route A — network MITM (for KEY EXPORT, not control)
+## Route A — network MITM (fallback for key export)
+
+> **Try `smartblinds-import-tilt` first.** The login this capture revealed is now
+> implemented (`tilt_cloud.py`), so an email and a password export every shade's
+> key with no proxy, no CA trust, and no phone. Come back here only if that fails:
+> an MFA-enabled account, or Auth0 attack protection blocking a password grant.
+> Then capture an `access_token` below and pass it with `--access-token`.
 
 Reveals the Tilt cloud "store": rooms, `rollerShades[]`, `bridges[]`, each with a
 32-byte `pairingKey`, where **`id` is the device's BLE MAC**. Auth is

@@ -122,6 +122,31 @@ def test_bad_password_is_reported_as_such() -> None:
         login("someone@example.com", "pw")
 
 
+def test_diagnose_reports_the_account_without_exposing_keys() -> None:
+    """`--debug` calls this; it must work and must not print key material."""
+    from smartblinds_ble.tilt_cloud import diagnose
+
+    with (
+        patch("smartblinds_ble.tilt_cloud.login", return_value={"access_token": "tok"}),
+        patch("smartblinds_ble.tilt_cloud._get_json", return_value=STORE),
+    ):
+        report = diagnose("someone@example.com", "pw")
+
+    assert "rooms: 2" in report
+    assert "key_len=64" in report
+    assert "ab" * 32 not in report  # counts the key, never prints it
+
+
+def test_diagnose_accepts_a_captured_token() -> None:
+    from smartblinds_ble.tilt_cloud import diagnose
+
+    with (
+        patch("smartblinds_ble.tilt_cloud.login", side_effect=AssertionError("must not log in")),
+        patch("smartblinds_ble.tilt_cloud._get_json", return_value=STORE),
+    ):
+        assert "rooms: 2" in diagnose(access_token="captured")
+
+
 def test_store_401_explains_the_audience_trap() -> None:
     from smartblinds_ble.tilt_cloud import fetch_store
 
