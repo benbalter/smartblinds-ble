@@ -2,8 +2,7 @@
 
 > Clean-room notes. Not affiliated with or endorsed by MySmartBlinds/Tilt.
 
-**There are two unrelated protocols here, and which one you have depends on your
-hardware, not your app version:**
+**There are two unrelated protocols here, and which one you have depends on your hardware, not your app version:**
 
 | | Legacy **MySmartBlinds** tilt motors | **Tilt** roller shades |
 |---|---|---|
@@ -13,11 +12,7 @@ hardware, not your app version:**
 | State feedback | none (reads return `0xFF`) | position, battery, charge, calibration |
 | Status in this repo | **⚠️ hypothesis, unverified on hardware** — see [ROADMAP.md](ROADMAP.md) M0-L | **implemented and verified on hardware 2026-09-11** |
 
-Part 1 below is the legacy protocol, derived from
-[`dnschneid/pysmartblinds`](https://github.com/dnschneid/pysmartblinds) (Apache-2.0).
-Nothing in it has been re-confirmed on a current motor; treat every constant as a
-guess. Part 2 is the Tilt protocol, which is implemented in
-`src/smartblinds_ble/tilt/` and confirmed end-to-end against four shades.
+Part 1 below is the legacy protocol, derived from [`dnschneid/pysmartblinds`](https://github.com/dnschneid/pysmartblinds) (Apache-2.0). Nothing in it has been re-confirmed on a current motor; treat every constant as a guess. Part 2 is the Tilt protocol, which is implemented in `src/smartblinds_ble/tilt/` and confirmed end-to-end against four shades.
 
 ---
 
@@ -38,10 +33,7 @@ Every operation must first write the **key** to the motor:
 | Characteristic UUID | `00001409-1212-efde-1600-785feabcd123` |
 | Payload | multi-byte key; **in practice only the first byte usually matters** |
 
-Because only the first byte typically matters, the key can be brute-forced by
-trying `0x00..0xFF` and seeing which value makes a subsequent position write
-"take" (the motor visibly moves). But brute-forcing is a fallback — prefer the
-cloud path below, which yields the *full* key.
+Because only the first byte typically matters, the key can be brute-forced by trying `0x00..0xFF` and seeing which value makes a subsequent position write "take" (the motor visibly moves). But brute-forcing is a fallback — prefer the cloud path below, which yields the *full* key.
 
 ## Key acquisition (two paths)
 
@@ -68,24 +60,19 @@ Immediately after the key, write a **single byte** position:
 | Characteristic UUID | **TODO(M0): capture** — original wrote by raw handle only |
 | Payload | one byte, **`0` (closed one way) .. `200` (closed the other)**, `100` ≈ flat |
 
-Smooth transitions in the original library are purely client-side: it steps the
-byte value over time. There is no native "move to X over N seconds" command.
+Smooth transitions in the original library are purely client-side: it steps the byte value over time. There is no native "move to X over N seconds" command.
 
 ## State feedback — there is none (legacy only)
 
-Reads return `0xFF`; the legacy motor does not report its true position. Tilt
-roller shades *do* report state — see Part 2; do not carry this limitation over.
-Consequences for legacy hardware:
+Reads return `0xFF`; the legacy motor does not report its true position. Tilt roller shades *do* report state — see Part 2; do not carry this limitation over. Consequences for legacy hardware:
 
 - Position must be **tracked client-side** (optimistic).
-- Changes made by the **app, a physical wand, or the schedule are invisible** and
-  will be clobbered by the next write.
+- Changes made by the **app, a physical wand, or the schedule are invisible** and will be clobbered by the next write.
 - The Home Assistant `cover` entity should therefore be **optimistic**.
 
 ## Known limitations / open questions (legacy hardware)
 
-Open, and only answerable by someone who still owns legacy tilt motors — none
-were available to test against:
+Open, and only answerable by someone who still owns legacy tilt motors — none were available to test against:
 
 - [ ] Does key auth + position write still work on post-2018 firmware?
 - [ ] Confirmed handle numbers under bleak (handle numbering can differ) vs UUIDs.
@@ -95,27 +82,15 @@ were available to test against:
 
 Answered for Tilt hardware (Part 2), and probably transferable:
 
-- **ESPHome proxy connection limits.** A proxy advertises 3 connection slots by
-  default. Brief connect → session → disconnect cycles make four shades workable
-  on a single proxy; nothing needs a persistent connection. Brief *successful*
-  sessions are not the whole story, though — a **failed** attempt can leak a slot
-  outright; see the connection-slot note in Part 2's operational notes.
+- **ESPHome proxy connection limits.** A proxy advertises 3 connection slots by default. Brief connect → session → disconnect cycles make four shades workable on a single proxy; nothing needs a persistent connection. Brief *successful* sessions are not the whole story, though — a **failed** attempt can leak a slot outright; see the connection-slot note in Part 2's operational notes.
 
 ---
 
 # Part 2 — Tilt roller shades (`RollerSh`) — IMPLEMENTED & VERIFIED
 
-A completely different protocol from Part 1: an encrypted, ACK'd session layer.
-It is **solved**, implemented in `src/smartblinds_ble/tilt/`, and confirmed on
-real hardware on 2026-09-11 — four shades authenticated, reported live
-position/battery, and moved on command, all routed through an ESPHome Bluetooth
-Proxy.
+A completely different protocol from Part 1: an encrypted, ACK'd session layer. It is **solved**, implemented in `src/smartblinds_ble/tilt/`, and confirmed on real hardware on 2026-09-11 — four shades authenticated, reported live position/battery, and moved on command, all routed through an ESPHome Bluetooth Proxy.
 
-Credit: the codec is vendored byte-for-byte (MIT) from
-[`Sunrise-Labs-Dot-AI/tilt-local-bridge`](https://github.com/Sunrise-Labs-Dot-AI/tilt-local-bridge),
-which did the reverse engineering that packet captures alone could not (see
-"Why sniffing wasn't enough" below). This repo contributes an async `bleak`
-transport, Home Assistant proxy routing, and a fake-shade test harness.
+Credit: the codec is vendored byte-for-byte (MIT) from [`Sunrise-Labs-Dot-AI/tilt-local-bridge`](https://github.com/Sunrise-Labs-Dot-AI/tilt-local-bridge), which did the reverse engineering that packet captures alone could not (see "Why sniffing wasn't enough" below). This repo contributes an async `bleak` transport, Home Assistant proxy routing, and a fake-shade test harness.
 
 ## Discovery
 
@@ -136,19 +111,13 @@ transport, Home Assistant proxy routing, and a fake-shade test harness.
 
 ## Link layer
 
-Messages are chunked to fit the MTU and **acknowledged per chunk in both
-directions**, with sequence numbers cycling `1..63`. A chunk header carries an
-end-of-message flag; a Bluetooth-layer flag distinguishes ACK frames from data.
-Integrity is CRC16/CCITT-FALSE. Both halves of this are exercised by the fake
-shade in `tests/tilt_helpers.py`, so a passing test proves the two directions are
-byte-compatible.
+Messages are chunked to fit the MTU and **acknowledged per chunk in both directions**, with sequence numbers cycling `1..63`. A chunk header carries an end-of-message flag; a Bluetooth-layer flag distinguishes ACK frames from data. Integrity is CRC16/CCITT-FALSE. Both halves of this are exercised by the fake shade in `tests/tilt_helpers.py`, so a passing test proves the two directions are byte-compatible.
 
 ## Handshake (plaintext)
 
 1. **Request protocol versions** (`0x02`) → shade answers with a version list.
 2. **Select version** (`0x03`) → v2.
-3. **Request nonce** (`0x0A`) → shade returns a **12-byte nonce** plus a proof of
-   key possession.
+3. **Request nonce** (`0x0A`) → shade returns a **12-byte nonce** plus a proof of key possession.
 
 The proof is:
 
@@ -156,20 +125,14 @@ The proof is:
 HMAC-SHA256(pairingKey, b"Signed Trogdor string, by Ryjan.")
 ```
 
-Both sides can compute it, so the shade proving it is what lets the client reject
-a wrong key *before* writing anything. A mismatch is an authentication failure,
-not a transport error — which is why a wrong key fails immediately and distinctly
-from a shade that is merely out of range.
+Both sides can compute it, so the shade proving it is what lets the client reject a wrong key *before* writing anything. A mismatch is an authentication failure, not a transport error — which is why a wrong key fails immediately and distinctly from a shade that is merely out of range.
 
 ## Application layer (encrypted)
 
 - **Cipher:** AES-128-CTR.
 - **Key:** `pairingKey[:16]` — the first half of the 32-byte pairing key.
-- **IV:** `nonce(12) || counter(2, big-endian) || 0x0000`. The counter is
-  `1..0x7FFF`; shade → central frames set the counter's **high bit**, which keeps
-  the two directions' keystreams disjoint.
-- **Presentation:** a 4-bit message id plus a response flag, then the command byte
-  and payload, checksummed with CRC16 over header + presentation.
+- **IV:** `nonce(12) || counter(2, big-endian) || 0x0000`. The counter is `1..0x7FFF`; shade → central frames set the counter's **high bit**, which keeps the two directions' keystreams disjoint.
+- **Presentation:** a 4-bit message id plus a response flag, then the command byte and payload, checksummed with CRC16 over header + presentation.
 
 ### Commands
 
@@ -187,9 +150,7 @@ Position is **0–1000 on the wire** (0 closed, 1000 open) and exposed as 0–10
 
 ## State feedback — unlike legacy, there is real state
 
-`GET_STATUS` returns position, battery percent, charge status, and whether the
-shade is calibrated. A Home Assistant `cover` for these shades therefore reports
-genuine position and **must not** be `assumed_state`.
+`GET_STATUS` returns position, battery percent, charge status, and whether the shade is calibrated. A Home Assistant `cover` for these shades therefore reports genuine position and **must not** be `assumed_state`.
 
 ## Operational notes learned on hardware
 
@@ -222,10 +183,7 @@ genuine position and **must not** be `assumed_state`.
 
 ## Key acquisition
 
-Each shade needs its 32-byte `pairingKey` (64 hex characters). These come from the
-Tilt cloud store (`api.tiltsmarthome.com/v2/store/tilt`), where each shade appears
-as `{id = BLE MAC, name, pairingKey}`. `smartblinds-import-tilt` does the whole
-round trip; `tilt_cloud.py` implements it with the standard library alone.
+Each shade needs its 32-byte `pairingKey` (64 hex characters). These come from the Tilt cloud store (`api.tiltsmarthome.com/v2/store/tilt`), where each shade appears as `{id = BLE MAC, name, pairingKey}`. `smartblinds-import-tilt` does the whole round trip; `tilt_cloud.py` implements it with the standard library alone.
 
 The exchange, for the record:
 
@@ -239,43 +197,20 @@ The exchange, for the record:
 | `scope` | `openid profile email offline_access` |
 | Store | `GET api.tiltsmarthome.com/v2/store/tilt`, `Bearer <access_token>` |
 
-**`audience` is the whole trick.** The Tilt backend shares the
-`mysmartblinds.auth0.com` tenant with the legacy cloud, so a legacy login
-*succeeds* — it just mints a token for the legacy API, which is why a legacy
-account query returns zero devices for a Tilt user and why an `id_token` gets a
-401 here. Ask for the Tilt audience and the same credentials work.
+**`audience` is the whole trick.** The Tilt backend shares the `mysmartblinds.auth0.com` tenant with the legacy cloud, so a legacy login *succeeds* — it just mints a token for the legacy API, which is why a legacy account query returns zero devices for a Tilt user and why an `id_token` gets a 401 here. Ask for the Tilt audience and the same credentials work.
 
-Two live-login failure modes: an MFA-enabled account gets `mfa_required` (the
-password grant cannot complete it), and Auth0 attack protection can reject a
-password grant from an unfamiliar IP. Both are worked around by capturing an
-`access_token` from the app and passing `--access-token`.
+Two live-login failure modes: an MFA-enabled account gets `mfa_required` (the password grant cannot complete it), and Auth0 attack protection can reject a password grant from an unfamiliar IP. Both are worked around by capturing an `access_token` from the app and passing `--access-token`.
 
-**There is still no offline path to these keys.** They cannot be brute-forced (32 bytes)
-or sniffed (see below). With the vendor cloud winding down, treat an exported key
-as irreplaceable and back it up somewhere durable.
+**There is still no offline path to these keys.** They cannot be brute-forced (32 bytes) or sniffed (see below). With the vendor cloud winding down, treat an exported key as irreplaceable and back it up somewhere durable.
 
-The **Tilt bridge is not a local control path**: it is a cloud-only AWS IoT MQTT
-client with every port closed (verified). Direct BLE is the only durable option.
+The **Tilt bridge is not a local control path**: it is a cloud-only AWS IoT MQTT client with every port closed (verified). Direct BLE is the only durable option.
 
 ## Why sniffing wasn't enough (historical)
 
-Kept because it explains why the cloud `pairingKey` alone looked insufficient, and
-saves anyone else the same dead end. From an iOS PacketLogger capture parsed with
-`contrib/parse_pklg.py`:
+Kept because it explains why the cloud `pairingKey` alone looked insufficient, and saves anyone else the same dead end. From an iOS PacketLogger capture parsed with `contrib/parse_pklg.py`:
 
-- **GATT:** writes to handles `0x0010` and `0x0015`; notifications on `0x0012`.
-  HCI ACL exposes plaintext ATT even though the link is encrypted.
-- **Framing:** a `00 <seq> …` transport with `00 c0 01 <n>` heartbeats and
-  `00 <seq> <hdr> <ciphertext>` data frames. A separate `2f <op> <seq> <payload>`
-  auth channel, and an `18/19` channel returning the device serial in the clear.
-- **Auth handshake:** `→ 2f01<seq>` · `← 2f10<seq> <16B challenge>` ·
-  `→ 2f11<seq> <16B response>` · `← 2f02<seq> 00`.
+- **GATT:** writes to handles `0x0010` and `0x0015`; notifications on `0x0012`. HCI ACL exposes plaintext ATT even though the link is encrypted.
+- **Framing:** a `00 <seq> …` transport with `00 c0 01 <n>` heartbeats and `00 <seq> <hdr> <ciphertext>` data frames. A separate `2f <op> <seq> <payload>` auth channel, and an `18/19` channel returning the device serial in the clear.
+- **Auth handshake:** `→ 2f01<seq>` · `← 2f10<seq> <16B challenge>` · `→ 2f11<seq> <16B response>` · `← 2f02<seq> 00`.
 
-Testing `response == AES-ECB / AES-CMAC(pairingKey, challenge)` across all shade
-keys and the bridge, 128- and 256-bit, both key halves, both directions, three
-challenge paddings → **0 matches**. The conclusion drawn at the time — that the
-auth key must be *derived* from the pairing key and that local control would need
-firmware RE in Ghidra or a Frida hook on the app — was right about the derivation
-and wrong about the difficulty: the derivation is the HMAC proof above, and
-`tilt-local-bridge` had already published it. **Check for prior art before
-reaching for a disassembler.**
+Testing `response == AES-ECB / AES-CMAC(pairingKey, challenge)` across all shade keys and the bridge, 128- and 256-bit, both key halves, both directions, three challenge paddings → **0 matches**. The conclusion drawn at the time — that the auth key must be *derived* from the pairing key and that local control would need firmware RE in Ghidra or a Frida hook on the app — was right about the derivation and wrong about the difficulty: the derivation is the HMAC proof above, and `tilt-local-bridge` had already published it. **Check for prior art before reaching for a disassembler.**
