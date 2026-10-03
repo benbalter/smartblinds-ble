@@ -32,3 +32,7 @@ tilt-capture/
 keys/
 *.key
 keys.json
+
+# Personal deployment notes (device addresses, LAN IPs) kept beside the
+# checkout. This repo is public, so one `git add .` must not pick them up.
+HANDOFF.md
