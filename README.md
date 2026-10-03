@@ -2,11 +2,7 @@
 
 [![CI](https://github.com/benbalter/smartblinds-ble/actions/workflows/ci.yml/badge.svg)](https://github.com/benbalter/smartblinds-ble/actions/workflows/ci.yml)
 
-Keep your **MySmartBlinds / Tilt motorized blinds** working **even after the cloud
-shuts down**. `smartblinds-ble` controls the shade motors **locally over Bluetooth
-LE** — **no proprietary hub, no cloud account, no phone app required** — and is
-built to run through **Home Assistant** and cheap **ESP32 / ESPHome Bluetooth
-Proxies**.
+Keep your **MySmartBlinds / Tilt motorized blinds** working **even after the cloud shuts down**. `smartblinds-ble` controls the shade motors **locally over Bluetooth LE** — **no proprietary hub, no cloud account, no phone app required** — and is built to run through **Home Assistant** and cheap **ESP32 / ESPHome Bluetooth Proxies**.
 
 > **Status depends on which hardware you own** — the two generations share a brand
 > and nothing else ([details](docs/PROTOCOL.md)):
@@ -30,25 +26,18 @@ Proxies**.
 
 If you're searching for any of the following, you're in the right place:
 
-- **"Is MySmartBlinds / Tilt shutting down / discontinued / out of business?"** —
-  the signs point that way (`tiltsmarthome.com` now redirects to a wind-down page,
-  parts are unavailable, support has gone quiet).
+- **"Is MySmartBlinds / Tilt shutting down / discontinued / out of business?"** — the signs point that way (`tiltsmarthome.com` now redirects to a wind-down page, parts are unavailable, support has gone quiet).
 - **"MySmartBlinds app not working / won't connect / no one answers support."**
 - **"How do I control MySmartBlinds without the hub / without the cloud / without the app?"**
-- **"MySmartBlinds / Tilt Home Assistant integration"** — a *local* one, not the
-  old laggy cloud bridge.
+- **"MySmartBlinds / Tilt Home Assistant integration"** — a *local* one, not the old laggy cloud bridge.
 - **"Will my smart blinds keep working if the servers go offline?"**
 - **"MySmartBlinds ESP32 / ESPHome / Bluetooth local control."**
 
 ## ⏳ Rescue your keys now (do this before the cloud goes dark)
 
-Each motor needs a small BLE **key** to accept commands. While the vendor cloud is
-still online, it will hand back the real key for **every shade on your account**
-after a single login. Once it shuts down, keys are recoverable only the hard way —
-and for Tilt shades, not at all. This step needs **no extra hardware**.
+Each motor needs a small BLE **key** to accept commands. While the vendor cloud is still online, it will hand back the real key for **every shade on your account** after a single login. Once it shuts down, keys are recoverable only the hard way — and for Tilt shades, not at all. This step needs **no extra hardware**.
 
-**Which app did you set your shades up in?** The two generations use separate
-backends, and a login to the wrong one succeeds while returning nothing.
+**Which app did you set your shades up in?** The two generations use separate backends, and a login to the wrong one succeeds while returning nothing.
 
 | Your app | Tool | Output |
 |---|---|---|
@@ -70,17 +59,9 @@ pip install smartblinds-ble     # no extra needed; this importer is stdlib-only
 smartblinds-import-tilt         # Tilt email/password -> tilt-keys.json
 ```
 
-Each shade comes back as `{name, mac, key, room}`, where `key` is the 64-hex
-`pairingKey` — all that `TiltShadeClient` and the Home Assistant integration
-need. A Tilt key **cannot** be brute-forced (32 bytes) or recovered from a BLE
-sniff, so this is the one step with **no offline substitute**. Export now and back
-the file up somewhere durable; once the cloud is gone, an un-exported key is gone
-with it.
+Each shade comes back as `{name, mac, key, room}`, where `key` is the 64-hex `pairingKey` — all that `TiltShadeClient` and the Home Assistant integration need. A Tilt key **cannot** be brute-forced (32 bytes) or recovered from a BLE sniff, so this is the one step with **no offline substitute**. Export now and back the file up somewhere durable; once the cloud is gone, an un-exported key is gone with it.
 
-If the account has MFA, or Auth0's attack protection blocks a password grant from
-an unfamiliar IP, capture an `access_token` from the app (see
-[`docs/CAPTURE.md`](docs/CAPTURE.md)) and pass `--access-token`. `--debug` reports
-what the account exposes without writing anything.
+If the account has MFA, or Auth0's attack protection blocks a password grant from an unfamiliar IP, capture an `access_token` from the app (see [`docs/CAPTURE.md`](docs/CAPTURE.md)) and pass `--access-token`. `--debug` reports what the account exposes without writing anything.
 
 ### Legacy MySmartBlinds motors
 
@@ -92,22 +73,16 @@ pip install smartblinds-ble "git+https://github.com/docBliny/smartblinds-client.
 smartblinds-import-cloud            # cloud email/password -> smartblinds-keys.json
 ```
 
-The output holds `{name, mac, key}` per shade and is your **offline insurance** if
-the cloud disappears. Unlike a Tilt key, a legacy key can also be brute-forced
-offline with `smartblinds-find-key` — slower, but a genuine fallback.
+The output holds `{name, mac, key}` per shade and is your **offline insurance** if the cloud disappears. Unlike a Tilt key, a legacy key can also be brute-forced offline with `smartblinds-find-key` — slower, but a genuine fallback.
 
 Both outputs contain secrets and are gitignored by default. Keep them safe.
 
 ## Why this exists
 
-The motors are ordinary Bluetooth LE devices. The only reason the vendor's hub
-exists is to bridge Wi-Fi → cloud → Bluetooth. With the company winding down, that
-cloud is a single point of failure that could take your blinds offline. This
-project talks to the motors **directly and locally**, so:
+The motors are ordinary Bluetooth LE devices. The only reason the vendor's hub exists is to bridge Wi-Fi → cloud → Bluetooth. With the company winding down, that cloud is a single point of failure that could take your blinds offline. This project talks to the motors **directly and locally**, so:
 
 - **No hub, no cloud, no account** — everything stays on your LAN.
-- Control routes through inexpensive **ESP32 ESPHome Bluetooth Proxies** for
-  whole-home coverage, or any Home Assistant Bluetooth adapter.
+- Control routes through inexpensive **ESP32 ESPHome Bluetooth Proxies** for whole-home coverage, or any Home Assistant Bluetooth adapter.
 - Your **MySmartBlinds keep working after the cloud shuts down**.
 
 ## How it works
@@ -149,8 +124,7 @@ pip install smartblinds-ble     # or: pip install -e ".[dev]" to hack on it
 pytest                          # protocol/encoding tests against a fake shade
 ```
 
-**Tilt roller shades** (verified path) — needs the shade's MAC and its 64-hex
-pairing key:
+**Tilt roller shades** (verified path) — needs the shade's MAC and its 64-hex pairing key:
 
 ```python
 import asyncio
@@ -180,9 +154,7 @@ which retries through proxies and — the part that bites — releases the proxy
 connection slot when an attempt fails. An ESPHome proxy has only three, and leaked
 slots take it down for every shade behind it.
 
-The factory needs a **`BLEDevice`**, not a bare address: that object is what
-carries the route to the proxy that can actually reach the shade. Home Assistant
-supplies it; a local scan cannot produce one for a remote proxy.
+The factory needs a **`BLEDevice`**, not a bare address: that object is what carries the route to the proxy that can actually reach the shade. Home Assistant supplies it; a local scan cannot produce one for a remote proxy.
 
 ```python
 from bleak import BleakClient
@@ -205,10 +177,7 @@ works with a locally scanned device
 connection, not a proxied one. See `contrib/gate_auth_mac.py` for a runnable
 example.
 
-The factory may be sync or async, and may hand back an **already connected**
-client — the library awaits it when it is awaitable and skips `connect()` when it
-is already connected (0.1.2+). This is how the Home Assistant integration routes
-every session through ESPHome proxies.
+The factory may be sync or async, and may hand back an **already connected** client — the library awaits it when it is awaitable and skips `connect()` when it is already connected (0.1.2+). This is how the Home Assistant integration routes every session through ESPHome proxies.
 
 **Legacy tilt motors** (unverified — constants are a hypothesis):
 
@@ -231,12 +200,7 @@ asyncio.run(main())
 ## FAQ
 
 ### Is MySmartBlinds / Tilt going out of business?
-There's no formal shutdown announcement, but the signals are strong: the operator
-(SmarterHome, a Hall Labs subsidiary) is winding down, `tiltsmarthome.com`
-permanently redirects to that wind-down page, replacement parts have been
-unavailable for a while, and support has gone quiet. The app still received updates
-into 2025, so the cloud is alive **for now** — which is exactly why you should
-export your keys today.
+There's no formal shutdown announcement, but the signals are strong: the operator (SmarterHome, a Hall Labs subsidiary) is winding down, `tiltsmarthome.com` permanently redirects to that wind-down page, replacement parts have been unavailable for a while, and support has gone quiet. The app still received updates into 2025, so the cloud is alive **for now** — which is exactly why you should export your keys today.
 
 ### Will my blinds stop working if the cloud/app shuts down?
 The blinds themselves are local Bluetooth devices, so they don't *need* the cloud —
@@ -245,9 +209,7 @@ control it locally. That's what this project (and the key-export tool) is for:
 keeping your **MySmartBlinds working after the cloud goes offline**.
 
 ### How do I control MySmartBlinds without the hub or the app?
-Get each motor's key (cloud export or brute-force), then send BLE commands with
-this library — directly from a computer/Raspberry Pi, or through Home Assistant +
-an ESP32 Bluetooth Proxy.
+Get each motor's key (cloud export or brute-force), then send BLE commands with this library — directly from a computer/Raspberry Pi, or through Home Assistant + an ESP32 Bluetooth Proxy.
 
 ### Does this work with Home Assistant?
 Yes, for Tilt roller shades:
@@ -257,16 +219,10 @@ with no cloud bridge. Legacy motors are not supported there yet — that waits o
 M0-L in the roadmap.
 
 ### Do I need an ESP32 / ESPHome Bluetooth Proxy?
-Only for range. Any Home Assistant Bluetooth adapter works if it's near the shades;
-ESP32 ESPHome Bluetooth Proxies (a few dollars each) extend coverage across a house.
+Only for range. Any Home Assistant Bluetooth adapter works if it's near the shades; ESP32 ESPHome Bluetooth Proxies (a few dollars each) extend coverage across a house.
 
 ### Does it work with the Tilt app still installed?
-Installed, yes; connected at the same time, no. A shade accepts **one central at a
-time**, so a phone with the app open in the same room will make Home Assistant's
-connections fail in a way that looks exactly like a range problem. Force-quit the
-app when handing control over. (Tilt shades do report real position, so the two
-won't disagree about state the way legacy motors would — they just can't share the
-radio link.)
+Installed, yes; connected at the same time, no. A shade accepts **one central at a time**, so a phone with the app open in the same room will make Home Assistant's connections fail in a way that looks exactly like a range problem. Force-quit the app when handing control over. (Tilt shades do report real position, so the two won't disagree about state the way legacy motors would — they just can't share the radio link.)
 
 ## Credits
 
@@ -285,10 +241,7 @@ radio link.)
 
 ## Keywords
 
-MySmartBlinds · Tilt · Tilt SmartHome · SmarterHome · Hall Labs · smart blinds ·
-motorized blinds · local control · no cloud · no hub · cloud shutdown ·
-discontinued · Home Assistant · HACS · Bluetooth · BLE · bleak · ESP32 · ESPHome ·
-Bluetooth Proxy · retire the hub · keep working after cloud shutdown
+MySmartBlinds · Tilt · Tilt SmartHome · SmarterHome · Hall Labs · smart blinds · motorized blinds · local control · no cloud · no hub · cloud shutdown · discontinued · Home Assistant · HACS · Bluetooth · BLE · bleak · ESP32 · ESPHome · Bluetooth Proxy · retire the hub · keep working after cloud shutdown
 
 ## License
 

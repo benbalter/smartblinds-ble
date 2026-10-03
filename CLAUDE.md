@@ -4,21 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Local, hub-free & cloud-free BLE control of **MySmartBlinds / Tilt** shade motors, so
-they keep working after the (winding-down) vendor cloud dies. Two layers: this
-`smartblinds-ble` async, `bleak`-based Python library, and the
-`ha-smartblinds-ble` HACS integration (separate repo, working). Unofficial, not
-affiliated with the vendor. Apache-2.0; a modern async port of
-`dnschneid/pysmartblinds` (see `NOTICE`) plus a vendored MIT Tilt codec.
+Local, hub-free & cloud-free BLE control of **MySmartBlinds / Tilt** shade motors, so they keep working after the (winding-down) vendor cloud dies. Two layers: this `smartblinds-ble` async, `bleak`-based Python library, and the `ha-smartblinds-ble` HACS integration (separate repo, working). Unofficial, not affiliated with the vendor. Apache-2.0; a modern async port of `dnschneid/pysmartblinds` (see `NOTICE`) plus a vendored MIT Tilt codec.
 
-On PyPI as [`smartblinds-ble`](https://pypi.org/project/smartblinds-ble/) (0.1.3),
-published by `release.yml` via Trusted Publishing on a `v*` tag. Per-release
-behaviour changes live in `CHANGELOG.md` — update it with the version bump.
+On PyPI as [`smartblinds-ble`](https://pypi.org/project/smartblinds-ble/) (0.1.3), published by `release.yml` via Trusted Publishing on a `v*` tag. Per-release behaviour changes live in `CHANGELOG.md` — update it with the version bump.
 
 ## ⚠️ Two protocols, two very different maturity levels
 
-Never generalize a claim from one to the other — most documentation bugs in this
-repo have been exactly that mistake.
+Never generalize a claim from one to the other — most documentation bugs in this repo have been exactly that mistake.
 
 - **Tilt roller shades** (advertise `RollerSh`) — **WORKING, verified on hardware
   2026-09-11.** Four shades authenticate, report live position/battery, and move on
@@ -37,13 +29,9 @@ repo have been exactly that mistake.
 - Install (dev): `pip install -e ".[dev]"`
 - Test: `pytest -q` — single: `pytest tests/test_protocol.py::test_set_tilt_writes_key_then_position`
 - Lint (the CI gate): `ruff check .`
-  - CI deliberately does **not** run `ruff format --check` — this ruff version
-    reformats Python inside markdown code blocks, which is brittle for the docs.
+  - CI deliberately does **not** run `ruff format --check` — this ruff version reformats Python inside markdown code blocks, which is brittle for the docs.
 - Run a tool without installing (src/ layout needs the path): `PYTHONPATH=src python -m smartblinds_ble.tools.find_key`
-- CLIs (`[project.scripts]`): `smartblinds-find-key` (BLE brute-force key discovery),
-  `smartblinds-import-cloud` (legacy-cloud key export; flags `--debug`,
-  `--include-deleted`, `--token`), `smartblinds-import-tilt` (**Tilt**-cloud key
-  export; flags `--debug`, `--include-bridges`, `--access-token`).
+- CLIs (`[project.scripts]`): `smartblinds-find-key` (BLE brute-force key discovery), `smartblinds-import-cloud` (legacy-cloud key export; flags `--debug`, `--include-deleted`, `--token`), `smartblinds-import-tilt` (**Tilt**-cloud key export; flags `--debug`, `--include-bridges`, `--access-token`).
 - CI: `.github/workflows/ci.yml` runs `ruff check` + `pytest` on Python 3.11/3.12/3.13.
 
 ## Architecture
@@ -74,12 +62,8 @@ repo have been exactly that mistake.
   `tilt_cloud.py` + `tools/import_tilt.py` — the same for **Tilt** accounts, but
   stdlib-only, so it needs no extra. See "Two backends" below.
 - `tools/find_key.py` — cloud-independent BLE brute-force of the first key byte.
-- `contrib/mitm_tilt_addon.py` — mitmproxy addon for reversing the Tilt cloud API;
-  auto-redacts secrets, writes `tilt-capture/`.
-- `docs/` — `PROTOCOL.md` (Part 1 = legacy, unverified; Part 2 = Tilt, verified),
-  `ROADMAP.md` (Tilt track shipped; legacy M0-L still open),
-  `CAPTURE.md` (definitive field notes for capturing the protocol; read before
-  attempting either a network-MITM or BLE capture).
+- `contrib/mitm_tilt_addon.py` — mitmproxy addon for reversing the Tilt cloud API; auto-redacts secrets, writes `tilt-capture/`.
+- `docs/` — `PROTOCOL.md` (Part 1 = legacy, unverified; Part 2 = Tilt, verified), `ROADMAP.md` (Tilt track shipped; legacy M0-L still open), `CAPTURE.md` (definitive field notes for capturing the protocol; read before attempting either a network-MITM or BLE capture).
 
 ## Two backends / device generations (critical, non-obvious)
 
