@@ -120,7 +120,8 @@ cloud-only AWS IoT MQTT client with no local API** (verified: all ports closed) 
   is redacted but still holds emails/MACs/room names — all gitignored, keep them out.
 - **Python**: `requires-python >=3.11`; the `type X = Y` statement (3.12+) breaks older
   parsers — avoid it.
-- **Releasing**: bump `version` in `pyproject.toml`, then push a signed `v*` tag
+- **Releasing** (only after Ben approves the release, since pushing the tag
+  publishes immediately): bump `version` in `pyproject.toml`, then push a signed `v*` tag
   (`git tag -m … vX.Y.Z`; this repo signs tags, so `-m` is required). `release.yml`
   builds and publishes to PyPI on its own. The pending-publisher form on pypi.org
   must exist *before* the first run of a new project, or the run fails
