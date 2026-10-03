@@ -6,7 +6,9 @@ This project has two hardware tracks (see [`docs/PROTOCOL.md`](docs/PROTOCOL.md)
 Everything below concerns the **Tilt roller shade** path; the legacy
 `SmartBlind_DFU` path remains an unverified hypothesis and has not changed.
 
-## Unreleased
+## 0.1.3 — 2026-10-03
+
+- Test fixtures use placeholder device addresses instead of real hardware ones.
 
 - **Tilt cloud key export** (`smartblinds-import-tilt`, `smartblinds_ble.tilt_cloud`).
   One login returns every Tilt shade's BLE MAC and 32-byte `pairingKey` — the keys

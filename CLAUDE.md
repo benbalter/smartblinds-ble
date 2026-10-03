@@ -11,7 +11,7 @@ they keep working after the (winding-down) vendor cloud dies. Two layers: this
 affiliated with the vendor. Apache-2.0; a modern async port of
 `dnschneid/pysmartblinds` (see `NOTICE`) plus a vendored MIT Tilt codec.
 
-On PyPI as [`smartblinds-ble`](https://pypi.org/project/smartblinds-ble/) (0.1.2),
+On PyPI as [`smartblinds-ble`](https://pypi.org/project/smartblinds-ble/) (0.1.3),
 published by `release.yml` via Trusted Publishing on a `v*` tag. Per-release
 behaviour changes live in `CHANGELOG.md` — update it with the version bump.
 
