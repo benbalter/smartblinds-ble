@@ -29,14 +29,14 @@ STORE = {
         {
             "name": "Office",
             "rollerShades": [
-                {"id": "C2:A3:D6:9B:F0:86", "name": "Left", "pairingKey": "ab" * 32},
-                {"id": "ff:c8:29:08:57:f5", "name": "Right", "pairingKey": "CD" * 32},
+                {"id": "AA:BB:CC:DD:EE:01", "name": "Left", "pairingKey": "ab" * 32},
+                {"id": "aa:bb:cc:dd:ee:02", "name": "Right", "pairingKey": "CD" * 32},
             ],
             "bridges": [],
         },
         {
             "name": "Dining",
-            "rollerShades": [{"id": "FE:36:EC:4E:20:12", "name": "Left", "pairingKey": "ef" * 32}],
+            "rollerShades": [{"id": "AA:BB:CC:DD:EE:03", "name": "Left", "pairingKey": "ef" * 32}],
             "bridges": [{"id": "AA:00:00:00:00:01", "name": "Bridge", "pairingKey": "11" * 32}],
         },
     ],
@@ -52,9 +52,9 @@ def _http_error(code: int, body: dict) -> urllib.error.HTTPError:
 def test_parse_store_extracts_mac_and_key() -> None:
     devices = parse_store(STORE)
     assert [d.mac for d in devices] == [
-        "C2:A3:D6:9B:F0:86",
-        "FF:C8:29:08:57:F5",  # normalized to upper case
-        "FE:36:EC:4E:20:12",
+        "AA:BB:CC:DD:EE:01",
+        "AA:BB:CC:DD:EE:02",  # normalized to upper case
+        "AA:BB:CC:DD:EE:03",
     ]
     assert [d.room for d in devices] == ["Office", "Office", "Dining"]
     # Keys come back lower-case hex, ready for bytes.fromhex().
